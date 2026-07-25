@@ -9,8 +9,16 @@ manifests — `.claude-plugin/plugin.json` and the `metadata.version` field in
 
 ## Unreleased
 
-Everything below landed on top of 1.0.0 without a version bump; both manifests
-still read `1.0.0`.
+_Nothing yet._
+
+## 2.0.0 — 2026-07-25
+
+First release of the [Blackshield](https://blackshield.pt) fork. Major rather than
+minor because the audit playbook was reworked section by section and several
+outputs changed shape — findings now carry a graded Impact, plans require a test
+plan and a code review, and dependency choices are surfaced as maintainer
+decisions instead of recommendations. Anything built on 1.0.0's output format
+should expect to adjust.
 
 ### Added
 

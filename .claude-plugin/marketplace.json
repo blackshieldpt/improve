@@ -1,10 +1,11 @@
 {
   "name": "improve",
   "owner": {
-    "name": "shadcn"
+    "name": "Blackshield",
+    "url": "https://blackshield.pt"
   },
   "metadata": {
-    "description": "Claude marketplace catalog for the improve plugin."
+    "description": "Claude marketplace catalog for the improve plugin (Blackshield fork)."
   },
   "plugins": [
     {

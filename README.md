@@ -2,6 +2,8 @@
 
 An agent skill that audits any codebase and writes implementation plans for other agents to execute.
 
+> **A Blackshield fork.** This is a modified version of [`shadcn/improve`](https://github.com/shadcn/improve), maintained by [Blackshield](https://blackshield.pt). The audit playbook, plan template, and verification workflow have all been substantially reworked — see [What's different here](#whats-different-here) and the [changelog](./CHANGELOG.md). MIT-licensed, original copyright retained.
+
 The idea: use your most capable model for the part where intelligence compounds — understanding the codebase, judging what's worth doing, writing the spec — and hand execution to cheaper models. The skill never implements anything itself. The plan is the product.
 
 ```
@@ -13,13 +15,13 @@ other agent  →  implements, tests, ships    (cheap model, executes)
 ## Install
 
 ```bash
-npx skills add shadcn/improve
+npx skills add blackshieldpt/improve
 ```
 
 In Claude Code you can install it as a plugin instead — the repo is its own marketplace:
 
 ```
-/plugin marketplace add shadcn/improve
+/plugin marketplace add blackshieldpt/improve
 /plugin install improve@improve
 ```
 
@@ -126,6 +128,25 @@ Plans aren't fire-and-forget:
 - Every plan is self-contained. No "as discussed above" — the executor has seen none of it.
 - Asked to implement? It declines and points at the plan (or offers `execute`).
 
+## What's different here
+
+The upstream project established the shape: an advisor that never writes code, plans written for a weaker executor, verification gates over prose. That holds. What this fork changed:
+
+- **The audit playbook was rewritten section by section.** Every category now carries the discipline that keeps it honest, because they fail in different ways — security names the repo's trust boundaries before claiming an impact, performance requires evidence of scale before claiming a cost, tech debt requires evidence the code is actually changing, test coverage asks whether a test would *fail* rather than whether lines are covered.
+- **It stopped being a JavaScript playbook.** Correctness, security, and performance examples came almost entirely from one ecosystem, which reads as a grep list for that stack and silence for every other. Defect classes are now stated language-agnostically and instantiated across Go, Python, Rust, Ruby, Java, and SQL — and the plan template says out loud that its TypeScript example is an instance, not a form to fill in.
+- **Whole classes of security finding that were missing**: cryptography, authentication as distinct from authorization, unsafe deserialization, resource exhaustion, SSRF, supply-chain posture, and agent/LLM surfaces.
+- **Findings get attacked before you see them.** Every HIGH or MEDIUM impact finding goes to fresh-context subagents told to refute it, because re-reading your own finding confirms the mechanism you already saw rather than the impact you inferred from it.
+- **Plans carry a test plan with a real coverage bar and a code review** — including, for a bug fix, a test that has to be seen failing before the change.
+- **Dependency decisions stay with you.** Dependency *defects* are findings; whether the project should carry a given dependency is a choice the audit surfaces and never decides.
+- **State survives between runs.** Rejected findings, audit coverage, and what went unverified are recorded in the index and read back on the next run, so the same dismissals aren't re-argued every session.
+
+Full detail in the [changelog](./CHANGELOG.md); contributor notes in [AGENTS.md](./AGENTS.md).
+
 ## License
 
-MIT © shadcn
+MIT.
+
+Original work copyright © 2026 shadcn — see [`shadcn/improve`](https://github.com/shadcn/improve).
+Modifications copyright © 2026 Blackshield.
+
+Both notices are retained in [LICENSE.md](./LICENSE.md), as MIT requires.

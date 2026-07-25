@@ -1,13 +1,20 @@
 {
   "name": "improve",
-  "description": "Point it at a codebase and it figures out what's worth doing — bugs, perf, tech debt, what to build next — then writes plans any agent can execute. It can hand the work to a cheaper model and review the result. It never edits your code.",
+  "description": "Point it at a codebase and it figures out what's worth doing — bugs, perf, tech debt, what to build next — then writes plans any agent can execute. It can hand the work to a cheaper model and review the result. It never edits your code. A Blackshield fork of shadcn/improve.",
   "version": "1.0.0",
   "author": {
-    "name": "shadcn",
-    "url": "https://twitter.com/shadcn"
+    "name": "Blackshield",
+    "url": "https://blackshield.pt"
   },
-  "homepage": "https://github.com/shadcn/improve",
-  "repository": "https://github.com/shadcn/improve",
+  "homepage": "https://github.com/blackshieldpt/improve",
+  "repository": "https://github.com/blackshieldpt/improve",
   "license": "MIT",
-  "keywords": ["audit", "code-review", "planning", "agents", "tech-debt", "security"]
+  "keywords": [
+    "audit",
+    "code-review",
+    "planning",
+    "agents",
+    "tech-debt",
+    "security"
+  ]
 }

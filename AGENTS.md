@@ -4,6 +4,11 @@ Notes for agents working on this repository.
 
 ## What this repo is
 
+A Blackshield fork of [`shadcn/improve`](https://github.com/shadcn/improve), MIT,
+with both copyright notices retained in `LICENSE.md` — don't drop the upstream one,
+the licence requires it. Attribution lives in three places that must agree:
+`LICENSE.md`, the README's License section, and the plugin manifests.
+
 An agent skill, and nothing else. There is no application code, no build, no
 test suite, no dependencies — `git ls-files` returns a dozen markdown and JSON
 files. (Don't hardcode the count in prose; it goes stale, and this file claiming

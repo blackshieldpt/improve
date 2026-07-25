@@ -10,6 +10,13 @@ Three properties make a plan executable by a weaker model:
 
 File naming: `plans/NNN-short-slug.md`, numbered in recommended execution order.
 
+**Plans directory.** This file writes `plans/` throughout. If the advisor chose
+`advisor-plans/` instead (because `plans/` was already taken for an unrelated
+purpose), substitute that path **everywhere** — the executor instructions, the
+done criteria, the index heading, and every cross-reference in every plan you
+write. A plan that points its executor at a directory that doesn't exist is
+broken.
+
 ---
 
 ## Template

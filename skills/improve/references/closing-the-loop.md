@@ -4,6 +4,8 @@ The advisor's job doesn't end at the plan. This file covers the three follow-thr
 
 The founding rule survives unchanged: **the advisor never edits source code.** In `execute`, a *separate executor subagent* edits code in an isolated git worktree; the advisor dispatches, reviews, and renders a verdict — like a tech lead who doesn't push commits to your branch.
 
+**Plans directory:** this file writes `plans/` throughout. If the advisor chose `advisor-plans/` instead, substitute that path everywhere below — index reads, executor instructions, and status writes.
+
 ---
 
 ## `execute <plan>` — dispatch and review

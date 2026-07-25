@@ -82,11 +82,14 @@ The facts the executor needs, inlined — never "as discussed" or "see audit":
 
 ## Suggested executor toolkit
 
-(Optional — include only when relevant skills/tools plausibly exist in the
-executor's environment. Skip the section otherwise.)
+(Optional. Fill this from the stack-matching skills recon actually found and
+loaded — not from a guess about what might be installed. Skip the section when
+recon found none.)
 
-- Skills the executor should invoke if available, and for what:
-  "use `vercel-react-best-practices` when writing the memoization in step 3".
+- Skills the executor should invoke, and for what: "use
+  `vercel-react-best-practices` when writing the memoization in step 3". If a
+  skill informed a finding or a step here, name it — the executor is a weaker
+  model and needs the same capability you had when you specified the work.
 - Reference docs worth reading before starting, by path or URL.
 
 ## Scope

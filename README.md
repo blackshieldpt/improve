@@ -43,6 +43,8 @@ Works in any agent that supports [Agent Skills](https://agentskills.io) format. 
 /improve ... --issues           also publish plans as GitHub issues
 ```
 
+> **If you installed it as a Claude Code plugin**, the skill may be namespaced after the plugin — `/improve:improve`, `/improve:improve quick`, and so on. Claude Code addresses plugin skills as `plugin:skill`, and both names here are `improve`. Everything after the command name is identical. Type `/` and look for `improve` if you're unsure; via `npx skills add` it's plain `/improve`.
+
 ## How to use
 
 A typical first run, start to finish:

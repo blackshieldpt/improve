@@ -176,12 +176,50 @@ command that proves it".
   than importing one.
 - **Coverage bar for the changed code**, stated as behaviour and not a
   percentage: which new or changed branches must be exercised, including the
-  error paths. The check to apply: *would one of these tests fail if this change
-  were reverted or stubbed out?* If not, they assert nothing about the work and
-  the plan's done criteria are hollow.
+  error paths.
 - **What these tests deliberately do not cover**, and why — so the reviewer isn't
-  left guessing whether a gap is an oversight or a decision.
+  left guessing whether a gap is an oversight or a decision. Be careful here: this
+  section exists to separate an oversight from a decision, so a *decision* written
+  into it still has to be a good one. An untested interaction that is the riskiest
+  thing in the change does not become acceptable by being listed.
 - **Verification**: `<test command>` → all pass, including the N new tests.
+
+### Falsifiability bar
+
+**Required.** A green suite proves nothing by itself — a test that cannot fail
+passes for exactly the same reason a correct one does. Every plan states, as a
+table, what must break when the work is removed:
+
+| Delete / revert this | This test must fail | Observed failure (executor fills in) |
+|---|---|---|
+| `the specific guard, line-referenced` | `TestName` | |
+| `the specific call the fix adds` | `TestName` | |
+
+Rules that make it real rather than ceremonial:
+
+- **One row per behaviour the plan claims to establish.** If the plan adds a
+  guard, a validation, and a call, that is three rows.
+- **The executor must perform each deletion, run the test, capture the actual
+  failure output, and restore.** Not "confirmed" — the output. This is a done
+  criterion and belongs in the executor's report.
+- **The deletion must leave the code compiling.** A row that fails to build tests
+  the compiler, not the test. Prefer neutering the behaviour (make the guard's
+  branch unreachable, drop the option from the call) over deleting a symbol other
+  code references.
+- **Prefer reverting to the pre-fix behaviour over deleting outright** — that is
+  what a regression actually looks like, and it produces a clean assertion failure
+  instead of an incidental panic.
+- **A row nobody can make fail is the finding**, not a formality to wave through:
+  that test asserts nothing and the plan is not done. Say so plainly rather than
+  quietly dropping the row.
+- **Watch for guards that shadow each other.** If an earlier check in the same
+  handler rejects the request with an identical response, a later test can pass
+  without ever reaching the code it names. When a plan adds a guard to a path that
+  already has one, add a row proving the *later* control is still reachable.
+
+For a test double or fixture the plan introduces, the same bar applies to the
+double itself: if deleting the thing the double is supposed to verify leaves every
+test green, the double is inert and the coverage is imaginary.
 
 ## Code review
 
@@ -223,6 +261,8 @@ Machine-checkable. ALL must hold:
 - [ ] `pnpm typecheck` exits 0
 - [ ] `pnpm test` exits 0; new tests for <X> exist and pass
 - [ ] the regression test for <X> fails at `<planned-at SHA>` and passes now
+- [ ] **every row of the falsifiability bar reported with its observed failure
+      output**; any row that could not be made to fail is called out as such
 - [ ] `grep -rn "<old pattern>" <the repo's source root>` returns no matches
 - [ ] No files outside the in-scope list are modified (`git status`)
 - [ ] Code-review self-check completed; its outcome is in the report

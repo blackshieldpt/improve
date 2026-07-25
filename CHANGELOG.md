@@ -9,7 +9,25 @@ manifests — `.claude-plugin/plugin.json` and the `metadata.version` field in
 
 ## Unreleased
 
-_Nothing yet._
+Everything below came out of one end-to-end run of the skill against a ~15k-line
+Go auth library — six plans audited, planned, executed, reviewed and merged. A
+review of the *merged* result then found 22 defects that the six individual plan
+reviews had each been structurally unable to see. These changes close the gaps
+that let them through.
+
+### Added
+
+- **`review-merged [<base>]` — a new invocation variant, and the largest gap this release closes.** `execute` reviews one plan against a clean base; nothing reviewed the *combination* before integration, and that omission accounted for every one of the 22 findings. The pass reviews the accumulated branches as a single change and leads with the defects only visible there: a guard one plan adds running *ahead* of what an earlier plan's test asserts (leaving the test green while it no longer exercises the control it is named for), error paths two plans jointly made distinguishable, conflict resolutions (unreviewed code by definition), and a linter suppression from a tooling plan that permanently buries a defect another plan recorded. Documented in `closing-the-loop.md`.
+- **A required falsifiability bar in every plan.** A table of *delete this → that test must fail*, one row per behaviour the plan claims to establish, which the executor fills in with the **observed failure output**. The template previously asked "would one of these tests fail if the change were reverted?" as prose inside the coverage bar; nothing made it a criterion, so nothing enforced it. In the source run three tests shipped that could not fail — two shadowed by a guard a later plan added ahead of them, one whose test double never validated the thing it existed to validate. The new section spells out how a row goes hollow: deletions that break the build test the compiler, incidental panics substitute for assertions, and a test can fail because an *earlier* guard rejected the request rather than the one under test. A row nobody can make fail is the finding, not a formality. (`plan-template.md`, with matching slots in the executor report format and the reviewer's checklist in `closing-the-loop.md`.)
+- **Premise verification in the refutation pass.** `adversarial-verification.md` already named the failure mode — "verifying a finding is not the same as verifying the fix" — and stopped at the diagnosis. It now carries a remedy: for plans introducing an artifact the rest of the system must accommodate (a cookie, header, config field, schema change, required call order), spend one verifier slot attacking the **fix's premise** rather than the finding, with a prompt that forces enumeration of every configuration and deployment shape the repo supports. Three HIGH findings in the source run were "correct in the default configuration, broken in every other one" — a class the finding-level pass cannot reach by construction. Budgeted from the existing verifier cap, not added to it.
+
+### Changed
+
+- **Phase 4 now prompts `review-plan`.** It existed only as an invocation variant, so nothing in the workflow ever suggested running it; across six plans it was never used once. It is now called for on any plan that adds a security control, changes a public contract, or introduces a new artifact — the plans whose premise is most likely to be wrong.
+- **Stacked plans get an explicit re-examination rule.** When plan N depends on plan M, the index records that M's tests must be re-*examined* after N lands, not merely re-run. "Still passing" and "still testing the same thing" are different questions, and the gap between them is where two of the source run's broken tests lived.
+- **`execute` preconditions now include verifying the worktree's base commit.** A drift check compares `Planned at` against `HEAD` and is meaningless if the worktree was branched from somewhere else entirely — a failure that presents *exactly* like genuine drift, so the executor correctly stops and a full dispatch is wasted. Host worktree tooling may branch from the repo's default branch, and `origin/HEAD` is often stale; in the source run it pointed 63 commits back. Check and remedy are one command each. Stacked plans get the related note that their base is the dependency's commit, not their own `Planned at`.
+- **Plan delivery to executors offers a second option.** Inlining the full plan is still always correct, but passing the absolute path in the main checkout is now documented for same-filesystem dispatches — read verified beforehand, path marked read-only. At ~30 KB per plan across a queue the difference is material.
+- **The "deliberately not covered" section carries a warning.** It exists to separate an oversight from a decision, which quietly implies that any decision written into it is sound. In the source run the single riskiest interaction in a security change was recorded there and shipped untested. A decision still has to be a good one.
 
 ## 2.1.0 — 2026-07-25
 

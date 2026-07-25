@@ -179,10 +179,45 @@ Then:
   plan's *Why this matters*. A finding that survived an attack is worth more to a
   reader than one that was merely asserted.
 
-## Known failure mode
+## Known failure mode — and the pass that closes it
 
 Verifying a finding is not the same as verifying the *fix*. A finding can be
 CONFIRMED while the plan built on it is still wrong, because the plan's premise
 is usually broader than the finding's evidence. Writing the fix concretely is
 what tests the premise — which is why `review-plan` catches things this pass
 cannot, and why the two are complementary rather than redundant.
+
+Left there, this is a diagnosis without a remedy, and the gap is real: a finding
+can survive three refuters and still produce a fix that is correct in the default
+configuration and broken in every other one. So for plans in the categories named
+below, spend **one verifier slot on the premise instead of the finding**.
+
+**Which plans need it.** Any plan that introduces a new artifact the rest of the
+system must accommodate — a cookie, a header, a token, a config field, a schema
+change, a new required call order — or that adds a guard on a path with more than
+one caller. Not needed for a plan that only deletes, renames, or corrects a value.
+
+**The prompt shape.** Same fresh-context, adversarial framing, aimed one level up:
+
+> The plan below proposes this fix: `<the change, in two sentences>`. Assume the
+> underlying finding is real — do not re-litigate it. Your job is to prove the
+> **fix** is wrong or incomplete.
+>
+> Enumerate the configurations and deployment shapes this repository actually
+> supports — read the config struct's fields and their ranges, every constructor
+> and mounting pattern the docs endorse, and every optional feature that changes
+> the path. For **each** one, state whether the fix still works. Name any shape
+> where it silently does nothing, breaks a working flow, or is weaker than what
+> exists today.
+>
+> Then: what does this fix newly *require* of a caller that nothing enforces?
+> What existing test would stop testing what its name claims once this lands?
+
+Its output is evidence, not verdict — same as any refuter. But a premise verifier
+that comes back with "works in the default configuration, breaks under `<setting>`"
+has just saved a release, and that is the single most common shape of the defect
+this pass exists to prevent.
+
+**Budget.** Premise verifiers come out of the same concurrency cap as finding
+verifiers; they do not get their own. At `standard`, one premise verifier on the
+highest-risk plan is usually the right trade against a fourth finding verifier.

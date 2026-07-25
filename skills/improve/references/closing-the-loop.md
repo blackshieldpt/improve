@@ -15,6 +15,8 @@ The founding rule survives unchanged: **the advisor never edits source code.** I
 - The repo is a git repository (worktree isolation requires it). If not: stop and say so.
 - The plan file exists and its dependencies show DONE in `plans/README.md`. If not: stop, name the missing dependency.
 - Run the plan's drift check yourself. If in-scope files changed since `Planned at`, reconcile the plan first (see below) — don't hand a stale plan to an executor.
+- **Instruct the executor to verify its worktree's base commit before anything else**, and give it the remedy. A drift check compares `Planned at` against `HEAD`; it is meaningless if the worktree was branched from somewhere else entirely, and that failure presents *exactly* like genuine drift — the executor dutifully reports "the code doesn't match the excerpts" and stops, having burned a full dispatch. Host worktree tooling may branch from the repo's default branch rather than the branch you are working on, and `origin/HEAD` is often stale. The check is one command (`git rev-parse --short HEAD` equals the plan's `Planned at`); the remedy is `git checkout -B <plan branch> <planned-at SHA>` inside the worktree, which works because worktrees share the object database. Checking out the *branch* you are on will be refused — create a new one at the commit.
+- **When plans stack, the base is the dependency's commit, not the plan's `Planned at`.** If plan N depends on plan M and M is not yet integrated, N's executor must branch from M's commit, or the files M created will not exist. Say so explicitly, and tell it that the plan's own drift-check command will therefore show M's changes — expected, not drift. Give it a narrower command that proves no *unrelated* file moved.
 
 ### Dispatch
 
@@ -24,7 +26,11 @@ Spawn **one** `general-purpose` subagent with `isolation: "worktree"`.
 
 The subagent prompt must contain:
 
-1. **The full plan file text, inlined.** The worktree contains only committed files — if `plans/` is uncommitted, the executor can't read it. Never assume; always inline.
+1. **The plan text.** The worktree contains only committed files, so if `plans/` is uncommitted the executor cannot read it from *its own* checkout. Two ways to deliver it, and the choice matters once you are dispatching more than one or two:
+   - **Inline the full text.** Always correct, works everywhere. Costs the whole plan in every prompt — a real consideration at ~30 KB per plan across a queue.
+   - **Pass the absolute path in the main checkout** (`/abs/path/repo/plans/003-x.md`) when the executor runs on the same filesystem. Confirm the file is readable before dispatching, tell the executor the path is in the *main* checkout rather than its worktree, and mark it read-only — it must never write there. If the read fails, fall back to inlining.
+
+   Never assume the executor can find the plan on its own.
 2. The executor preamble:
 
 > You are the executor for the implementation plan below. Follow it step by
@@ -50,6 +56,9 @@ SELF-REVIEW: the outcome of each item in the plan's "Code review" self-review
              list — not "done", but what you found and what you did about it
 TESTS: which cases from the plan's test plan you covered, at which layer, and
        (for a bug fix) confirmation the test failed before the change
+FALSIFIABILITY BAR: every row of the plan's table — the deletion you made, the
+       test you ran, and the ACTUAL failure output. Mark any row you could not
+       make fail; that is a finding, not a formality.
 NOTES: anything the reviewer should know (deviations, surprises, judgment calls)
 ```
 
@@ -63,6 +72,9 @@ Review like a tech lead reviewing a PR against the spec — never fix anything y
 2. **Scope compliance**: `git -C <worktree> diff --stat` against the plan's in-scope list. Any file outside scope fails review, full stop.
 3. **Read the full diff.** Judge it against "Why this matters" (does it solve the actual problem?) and the repo conventions named in the plan (does it look like the rest of the codebase?).
 4. **Audit the new tests** against the plan's test plan, not just its done criteria. Executors game criteria: a test that asserts nothing meaningful still turns the suite green and proves nothing. Read what each test actually asserts, check the cases named in the plan are the cases covered and at the layer specified, and for a bug fix confirm the claim that the test failed before the change — re-run it at the plan's `Planned at` commit if the report doesn't evidence it.
+5. **Re-run the falsifiability bar yourself, at least for the rows that carry the plan's security or correctness claim.** This is the highest-value thing in the review and the cheapest to skip. Make the deletion in the worktree, run the named test, confirm it fails *for the stated reason*, restore. Two things to watch:
+   - **An incidental failure is not a passing row.** If neutering the guard makes the test fail with a nil-dereference or a build error rather than the assertion the test exists for, the test may still be asserting nothing — the crash is doing the work. Prefer reverting to the pre-fix behaviour, which produces a clean assertion failure, and say which you did.
+   - **Verify the row is testing what its name says.** A test can fail on deletion because an *earlier* guard rejects the request, not the one under test. If the plan added a guard ahead of an existing one on the same path, check the later control is still reachable.
 
 ### Verdict
 
@@ -77,6 +89,69 @@ Review like a tech lead reviewing a PR against the spec — never fix anything y
 Running verification commands inside the executor's worktree is fine — it's isolated and disposable. The no-mutating-commands rule protects the user's working tree, not the worktree.
 
 ---
+
+## `review-merged [<base>]` — review the combination before integrating
+
+Every `execute` review sees one plan against a clean base. That is the right unit
+for judging whether a plan was implemented, and the wrong unit for judging whether
+the *result* is correct — because the defects that survive to this point are
+precisely the ones no single-plan review can see.
+
+Run it after the last `execute` and before integrating. If branches are already
+merged, run it against the pre-merge commit; late is far better than never.
+
+### Scope
+
+`<base>` defaults to the commit the plans were planned at. Review
+`git diff <base>..<tip>` as **one change**, the way a maintainer would review a
+release branch — not as N plans re-read in sequence.
+
+### What only shows up here
+
+Lead with these; they are the whole reason the pass exists.
+
+- **Guard shadowing.** Plan N adds a check on a path where plan M already asserts
+  something. If N's check runs first and rejects with the same response, M's test
+  passes without ever reaching the control it is named for. **Take every test the
+  earlier plans added on a path a later plan touched, and re-ask "would this still
+  fail if its control were removed?"** — not "is it green?". This is the single
+  most common finding of this pass.
+- **A new artifact meeting the deployment surface.** A cookie, header, or required
+  call order introduced by one plan now has to survive every configuration the
+  project supports — not just the default the plan was written against. Enumerate
+  the config fields and mounting patterns and walk each one.
+- **Responses that were meant to be identical and no longer are.** Two plans
+  touching the same error path can make it distinguishable — an extra header, a
+  different status, a changed body — turning a deliberately opaque rejection into
+  an oracle.
+- **Conflict resolutions.** Every merge conflict you resolved is unreviewed code.
+  Diff the resolved region against both sides and confirm nothing was dropped.
+- **A fix in one plan that silences a finding in another.** Most often a linter
+  suppression added by a tooling plan that now permanently hides a defect a
+  different plan (or the original audit) had recorded.
+- **Cross-plan duplication.** Two plans independently adding the same section,
+  entry, or helper — harmless individually, wrong together.
+
+### How
+
+Fan out with fresh-context reviewers over the combined diff, clustered by concern
+rather than by plan — the plan boundaries are exactly the lines you are trying to
+see across. One reviewer on the security-critical production paths, one on the
+tests (with "list every test that would pass with its feature deleted" as an
+explicit deliverable), one on anything else the diff touches. Give them the diff
+range and the fact that the code came from independent branches merged together;
+that framing is what makes them look for interactions.
+
+Then verify their findings yourself, as in Phase 3 — a reviewer told to hunt for
+interactions will over-report couplings that are not real.
+
+### Output
+
+The same findings table Phase 3 produces, plus one explicit statement per plan:
+**does it still do what its review said it did?** Anything that regressed becomes
+a new plan, numbered into the existing sequence. Record the pass in the index's
+audit-coverage block so a later `reconcile` can tell "reviewed as a whole" from
+"reviewed one plan at a time".
 
 ## `reconcile` — keep `plans/` alive
 

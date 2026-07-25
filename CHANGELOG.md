@@ -25,6 +25,7 @@ still read `1.0.0`.
 
 ### Changed
 
+- The correctness/bugs checklist is no longer JS/TS-shaped. Its examples were drawn almost entirely from one ecosystem — `catch (e) { console.log(e) }`, unawaited promises, stale React effect closures, `!` assertions, `any`/`as`/`@ts-ignore` — which reads as a grep list for that stack and as silence for every other. Each bullet now states the defect class and instantiates it across ecosystems (Go `if err != nil {}`, Python `except: pass`, Rust `unwrap()`, Ruby `rescue nil`, SQL `NULL` semantics, RAII/`defer`/`with` cleanup), with an explicit instruction to instantiate against the stack recon found and to treat the examples as shapes rather than an exhaustive list.
 - Security audit guidance reframed toward defensive maintenance (identify pattern, explain production impact, describe remediation; no runnable demonstration strings), while keeping the canonical vocabulary — XSS, IDOR, CSRF, CSP, injection, mass assignment.
 - Hard Rule 2's worktree exception now covers the setup a fresh worktree needs before verification can run at all (dependency install, and one build where check tooling resolves from `dist/`), not only verification commands.
 - `branch` resolves the default branch via `git symbolic-ref --short refs/remotes/origin/HEAD`, falling back to a local `main`/`master` and asking rather than guessing when neither exists. Scope now includes staged, unstaged, and untracked work, not just commits — which is the state a pre-PR audit actually runs against.

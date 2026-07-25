@@ -10,14 +10,16 @@ A finding is only a finding with evidence. "Probably has N+1 queries somewhere" 
 
 The highest-trust category — real bugs found by reading, not speculation.
 
-- Error handling: swallowed exceptions, empty catch blocks, `catch (e) { console.log(e) }` on critical paths, missing error states in UI code.
-- Async hazards: unawaited promises, race conditions on shared state, missing cancellation/cleanup (stale closures in React effects, listeners never removed).
-- Null/undefined flows: non-null assertions (`!`) on values that can be null, optional chaining hiding a value that must exist, unchecked array indexing.
-- Boundary conditions: off-by-one, empty-collection handling, timezone/locale assumptions, integer overflow in counters/IDs.
-- State machines: impossible-state combinations representable in types, status enums with unhandled branches (look for `default:` that silently no-ops).
-- Concurrency: check-then-act on shared resources, missing transactions around multi-write operations, idempotency of retried operations (webhooks, queues).
-- Type escape hatches: `any` / `as` casts / `@ts-ignore` clusters — each one is a place the compiler was overruled.
-- Resource leaks: unclosed handles, connections, subscriptions; missing `finally`.
+**The defect classes below are language-agnostic; the syntax expressing them is not.** Instantiate each against the stack recon identified, and prefer what that stack's own skill, linter, or compiler flags over the examples here — they're illustrative of the *shape*, not a grep list. A pattern absent from this file is still a finding.
+
+- **Error handling**: errors swallowed or discarded — empty catch blocks, `except: pass`, `catch {}`, `if err != nil {}` with no action, `rescue nil`, errors logged while execution continues as though nothing failed, `unwrap()`/`panic`/`fatalError` on recoverable failures. Worst on critical paths (money, auth, data writes). Also: wrapping that loses the cause, and surfaces — UI, API, CLI — with no failure state at all.
+- **Async hazards**: work started and never awaited or joined — unawaited promises/futures/tasks, fire-and-forget goroutines or threads with nowhere to report failure, detached tasks outliving their caller. Plus cleanup never wired: contexts never cancelled, subscriptions and listeners never removed, callbacks capturing state that has since gone stale, and unbounded concurrency where a pool or semaphore belongs.
+- **Shared-state races**: check-then-act on a shared resource (TOCTOU), read-modify-write with no lock, atomic, or transaction, multi-write operations not wrapped in one transaction, and retried operations that aren't idempotent (webhook handlers, queue consumers, payment captures). Name the mechanism the language actually offers and whether it's used — mutex, channel, `SELECT … FOR UPDATE`, an optimistic version column — and watch for single-threaded assumptions that stop holding under multiprocessing or multiple replicas.
+- **Absent-value flows**: the language's escape hatch applied to something that genuinely can be absent — non-null assertions, `unwrap()`/`expect()`, `Optional.get()`, force unwraps, map/dict indexing that raises on a missing key, dereferencing a possibly-nil pointer or receiver, `NULL` semantics in SQL diverging from what the application assumes. The inverse counts too: absence defaulted away so defensively that a value which *must* exist fails silently instead of loudly.
+- **Boundary conditions**: off-by-one, inclusive/exclusive range confusion, empty-collection handling (max/first/average over nothing), integer overflow or truncation in counters and IDs, floating-point arithmetic on money, timezone/DST/locale assumptions, byte-vs-character encoding assumptions, and division by a value computed at runtime.
+- **State & exhaustiveness**: impossible states representable in the type or schema, and enum/variant branches left unhandled — a `default:`, `else`, or catch-all arm that silently no-ops, a non-exhaustive `switch`/`match`/`case` where nothing forces coverage, a status column holding values no code path handles.
+- **Escape hatches from the checker**: every place the compiler or type checker was deliberately overruled — `any`, unchecked or downcasts, `@ts-ignore`, `# type: ignore`, `unsafe`, `interface{}` with runtime type assertions, reflection-based field access, `@SuppressWarnings`, raw pointer arithmetic. Each is an assumption nothing verifies; clusters mark the code most likely to be wrong.
+- **Resource leaks**: handles, sockets, connections, file descriptors, locks, and subscriptions acquired without a guaranteed release — no `finally`/`defer`/`with`/`using`/RAII guard, early returns or raised errors that skip cleanup, pool connections leaked on error paths, temp files never removed.
 
 ## 2. Security
 

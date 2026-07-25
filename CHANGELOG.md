@@ -53,6 +53,8 @@ still read `1.0.0`.
 - `Planned at` date is taken from `date +%F` output instead of reconstructed from memory.
 - `examples/001` refreshed to match the current plan template.
 
+- README's "How it works" block rewritten to match the skill. The Vet paragraph advertised as the whole of that phase — "the advisor re-reads every cited location itself" — exactly what `SKILL.md` now calls the weakest available check, and said nothing about the adversarial refutation pass, its verdicts, or the fact that unverified findings are reported as self-vetted only. Recon was missing stack-skill loading and prior-backlog ingestion; Audit listed the nine categories without the per-category disciplines that are what actually keeps each one honest (trust boundaries, scale evidence, churn evidence, would-a-test-fail, staying-put-as-default, the grounding rule); Prioritize didn't mention that direction and dependency choices are presented separately and unranked; Plan didn't mention dependency ordering or the recorded audit coverage. Every claim in the new block was checked against the skill files rather than written from memory.
+
 ### Removed
 
 - `examples/001-extract-shadow-config-resolution.md`, the sample plan. It was pinned to an upstream commit from June and its "Current state" excerpts had drifted from the repo it described — a stale example of a format whose whole point is that excerpts match live code. The README section it illustrated keeps the prose description of what a plan contains.

@@ -76,15 +76,26 @@ Picking #1 produced a plan with the current code excerpted, exact steps, the rep
 
 ## How it works
 
-**Recon.** Maps the repo: stack, conventions, and the exact build/test/lint commands — these become verification gates in every plan. It also ingests intent and design docs when present — ADRs (`docs/adr/`), PRDs, `CONTEXT.md`, `DESIGN.md`, `PRODUCT.md` — so decided tradeoffs aren't re-flagged as findings, direction suggestions stay grounded in stated product intent, and plans speak the repo's own vocabulary. Composes with any repo that already maintains these docs.
+**Recon.** Maps the repo: stack, conventions, and the exact build/test/lint commands — these become verification gates in every plan. It also picks up three things that make the audit sharper:
 
-**Audit.** Fans out parallel subagents across nine categories: correctness, security, performance, test coverage, tech debt, dependencies & migrations, DX, docs, and direction (feature suggestions — every one must cite evidence from the repo itself, no generic idea-slop). Every finding carries `file:line` evidence, impact, effort, and confidence.
+- **Intent and design docs**, when present — ADRs (`docs/adr/`), PRDs, `CONTEXT.md`, `DESIGN.md`, `PRODUCT.md` — so decided tradeoffs aren't re-flagged as findings, direction suggestions stay grounded in stated product intent, and plans speak the repo's own vocabulary. Composes with any repo that already maintains these docs.
+- **Skills for the stack's own libraries**, read out of `package.json` / `go.mod` / `requirements.txt` and loaded before auditing — so findings are judged against a framework's real idioms instead of generic ones, which is often the difference between a finding and a false positive.
+- **The prior backlog**, if a previous run left one — the plans already written, and the "considered and rejected" list, which is fed into the audit so dismissed findings aren't re-discovered and re-argued every session.
 
-**Vet.** Subagents over-report, so the advisor re-reads every cited location itself before showing you anything — false positives get dropped, wrong attributions get corrected, rejections get recorded.
+**Audit.** Fans out parallel subagents across nine categories: correctness, security, performance, test coverage, tech debt & architecture, dependencies & migrations, DX, docs, and direction. Every finding carries `file:line` evidence, impact, effort, risk, and confidence. Each category also carries the discipline that keeps it honest, because the categories fail in different ways:
 
-**Prioritize.** Findings land in a table ordered by leverage (impact ÷ effort, weighted by confidence). You pick what becomes plans.
+- **Security** starts by naming the repo's trust boundaries — what counts as untrusted input differs for a service, a CLI, a library, a pipeline, an agent tool — and rates impact by reachability and precondition. A finding that can't name the boundary its input crosses is describing a mechanism, not an impact.
+- **Performance** requires evidence of scale before a cost claim. A quadratic scan over a collection that is always five elements is real as a mechanism and worthless as a finding.
+- **Tech debt** requires evidence the code is actually changing. Duplication in a module nobody touches costs nothing, and "ugly but stable, not worth doing" is a valid verdict.
+- **Test coverage** asks whether an existing test would *fail* if the code broke — not whether the lines are covered — because that's what decides whether a plan's verification gates mean anything.
+- **Dependencies** treat staying put as the default, and separate defects (an EOL runtime, an abandoned package) from decisions about what the project should carry, which are yours to make, not the audit's.
+- **Direction** requires every suggestion to cite evidence from the repo itself — a suggestion that could apply to any project ("add dark mode", "add AI") is noise. It can also propose *removing* things, and states what a feature costs to own forever, not just to ship.
 
-**Plan.** One file per selected finding, written into `plans/` with an index, priority order, and dependency graph.
+**Vet.** Subagents over-report, and so does the advisor. Cited locations get re-read first-hand — false positives dropped, wrong attributions corrected, rejections recorded. But re-reading your own finding is the weakest available check: it re-confirms the mechanism you already saw, not the impact you inferred from it. So for security findings, anything rated HIGH impact, and everything at `deep`, fresh-context subagents are dispatched to **refute** each finding and come back REFUTED, OVERSTATED, or CONFIRMED. The defect this reliably catches is a real code smell with an invented consequence — a rate limiter registered earlier in the chain, a caller that never reaches the path, a constraint that makes the bad state unrepresentable. Their verdicts are evidence, not rulings: a verifier told to refute will over-refute, so anything downgraded gets checked against the code again. Findings that don't go through the pass are reported as self-vetted only.
+
+**Prioritize.** Findings land in a table ordered by leverage (impact ÷ effort, weighted by confidence). Options for you to weigh rather than defects to fix — direction suggestions, and dependency choices — are presented separately and unranked, because burying "build a plugin system" under "fix the N+1" serves neither. You pick what becomes plans.
+
+**Plan.** One file per selected finding, written into `plans/` with an index, priority order, and dependency graph — including the orderings that matter, like characterization tests landing before the refactor that needs them. The index also records what this run *didn't* audit, so a later session can tell "examined and clean" from "never looked at".
 
 ## What makes the plans executable
 

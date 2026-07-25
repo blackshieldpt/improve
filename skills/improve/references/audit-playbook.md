@@ -63,15 +63,30 @@ A finding that cannot name the boundary its input crosses is describing a *mecha
 
 ## 3. Performance
 
-Look for the algorithmic and architectural wins, not micro-optimizations.
+Look for the algorithmic and architectural wins, not micro-optimizations. Where the line sits: a finding **removes a scaling factor or wins an order of magnitude at realistic input sizes**. A constant-factor tweak whose benefit you can't demonstrate isn't a finding — record "not worth doing" and move on.
 
-- N+1 patterns: query/fetch per item inside loops or per list-row rendering; missing batching or dataloader.
-- Wrong complexity: nested scans over the same collection, repeated `find`/`filter` inside hot loops where a Map keyed lookup belongs.
-- Caching gaps: identical expensive computations or fetches repeated per request/render; missing memoization at clear function boundaries; no HTTP/data-layer caching on stable data.
-- Payload size: over-fetching (select *, full objects where IDs suffice), missing pagination on unbounded lists, large JSON shipped to clients.
-- Frontend (if applicable): bundle composition (heavyweight deps for trivial use), missing code-splitting on rarely-hit routes, unoptimized images/fonts, client-side fetching for data available at render time, render waterfalls. For React/Next.js, defer to the repo's framework conventions and any installed best-practices guidelines.
-- Backend: synchronous work that belongs in a queue, missing indexes implied by query patterns (flag for verification — don't claim without schema evidence), connection-per-request patterns where pooling exists.
-- Build/CI: slow CI from missing caching, redundant pipeline steps, test suites that could parallelize.
+**Establish scale before claiming cost.** This is the category where findings are least provable by reading. A correctness bug is wrong on its face; "this is slow" is a claim about behaviour at production volume. Before reporting, get evidence of scale — the loop's actual bound, how the table grows, request rate, fixture and seed sizes, pagination defaults, anything stated in config or docs. A quadratic scan over a collection that is always five elements is not a finding, and it *will* survive adversarial verification, because the mechanism is real and only the impact is invented. Where scale genuinely can't be established from a read, say so, rate it **LOW confidence**, and write it as an investigate-and-measure item rather than a fix.
+
+**Measure what you can; prefer the stack's own tooling** (loaded during recon) over inference. Run committed benchmarks read-only (`go test -bench`, `pytest-benchmark`, `cargo bench`), read query plans (`EXPLAIN` / `EXPLAIN ANALYZE`) instead of guessing at indexes, and cite any profiler or trace output the repo keeps. **If there's no benchmark or profiling story at all and performance is a stated concern, that is finding #1** — "establish a performance baseline" — and it precedes every other plan in this category, for the same reason a verification baseline precedes a risky refactor.
+
+**Fixes here carry unusual risk — rate it honestly.** Caching adds staleness and invalidation duties, batching changes partial-failure semantics, denormalization creates consistency obligations, and parallelizing work imports every hazard in §1's async and shared-state bullets. When recommending concurrency, point the plan at those checks explicitly.
+
+- **N+1 and its inverse**: a query or fetch per item inside a loop or per rendered row, with no batching or dataloader — *and* the over-correction: eager loading that pulls whole object graphs, or joins that multiply rows, when the caller needed two fields. Turning one into the other is the most common regression this category produces.
+- **Wrong complexity**: nested scans over the same collection, repeated `find`/`filter`/`includes` inside a hot loop where a keyed map belongs, sorting inside a loop, a derived value recomputed per iteration, quadratic string or list building.
+- **Memory & allocation**: unbounded growth first — caches with no eviction, collections that accumulate for the process lifetime, whole streams or result sets buffered where they could be iterated. Then churn: allocation inside hot loops, large structures copied where a view or reference would do, string concatenation in loops, large objects retained past their last use. On memory-capped targets (containers with limits, mobile, embedded) breaching the ceiling is a correctness failure, not a slowdown.
+- **Concurrency as a lever** — see §1 for the hazards it introduces: independent I/O awaited one call at a time where it could be issued together, over-broad critical sections and lock contention, thread- or connection-per-request where a pool exists, and **blocking work on an async runtime or event loop** — a synchronous file read, DNS lookup, or CPU-bound routine inside an async handler starves the whole pool, and it reads clearly off the code.
+- **Caching — gaps and hazards**: identical expensive computations or fetches repeated per request/render, no memoization at obvious function boundaries, no HTTP or data-layer caching on stable data. But a cache is a new failure surface, so report its absent guardrails too: no eviction bound, missing or incorrect invalidation, stampede on expiry with no coalescing or jitter, and — a correctness and security defect rather than a performance one — per-user or per-tenant data in a cache whose key lacks that discriminator. **Never recommend a cache without naming its bound and its invalidation.**
+- **Data access & query shape**: unbounded result sets and missing `LIMIT`, `SELECT *` or whole objects where IDs suffice, absent pagination on lists that grow, indexes implied by the query pattern (flag for verification — read the plan, don't claim from the query text), indexes defeated by wrapping the column in a function or by a leading-wildcard match, transactions held open across network calls, ORM lazy-loading chatter, and a pool too small to serve peak concurrency.
+- **Round trips & payload**: how many sequential network calls one user action costs — frequently the dominant term and the least visible in a profile. Chatty client-server or service-to-service designs, no request coalescing, missing compression, no connection reuse or keep-alive, static assets with no CDN or cache headers, verbose payload formats where the volume justifies a compact one.
+- **Startup & cold path**: time to first useful work. Serverless and container cold starts, module-graph load cost, image size, eager initialization of rarely-used things, config or migration work on every boot. For a CLI this is *the* performance characteristic — time-to-first-output on the common command, not throughput.
+- **Shape-specific hot spots** — take only what applies to the repo shape identified in recon:
+  - *Web frontend*: bundle composition (a heavyweight dep for trivial use), missing code-splitting on rarely-hit routes, unoptimized images and fonts, client-side fetching for data available at render time, render waterfalls, layout thrash. Defer to the repo's framework conventions and any installed best-practices skill.
+  - *Library / SDK*: import-time cost and side effects, allocation in hot public APIs, an API shape that forces callers into the slow pattern.
+  - *Mobile / desktop*: main-thread work and jank, battery and wakeup cost, synchronous work on launch.
+  - *Data pipeline / batch*: partition skew and shuffle cost, row-at-a-time processing where vectorized or columnar work fits, serialization format, full recomputation where incremental would do.
+  - *Embedded / constrained*: fixed memory ceilings, allocation on interrupt or real-time paths.
+
+Build, test, and CI latency is developer-facing feedback loop rather than product performance — it belongs in **§7 (DX & tooling)**. Report it once, there.
 
 ## 4. Test Coverage
 
@@ -104,7 +119,7 @@ The goal is not a percentage — it's *which untested code is dangerous*.
 ## 7. DX & Tooling
 
 - Missing or broken: typecheck script, lint config, formatter, pre-commit hooks, editorconfig.
-- Slow feedback loops: dev-server or test startup measured in minutes, no watch mode, CI without caching.
+- Slow feedback loops — this category owns build, test, and CI latency (§3 covers product performance only, and points here): dev-server or test startup measured in minutes, no watch mode, CI without dependency or build caching, redundant pipeline steps, and test suites that run serially where they could shard or parallelize. Cite the observed duration where CI config or logs give you one.
 - Onboarding friction: README setup steps that are wrong/incomplete, undocumented required env vars, no `.env.example`.
 - Missing `CLAUDE.md`/`AGENTS.md` — for repos where agents will execute the plans, this is high-leverage: recommend one and include its outline as a plan.
 - Error messages/logging: unstructured logs on services, missing request IDs/correlation, debugging requiring code changes.

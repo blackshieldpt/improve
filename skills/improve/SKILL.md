@@ -4,6 +4,8 @@ description: Survey any codebase as a senior advisor and produce prioritized, se
 license: MIT
 metadata:
   author: shadcn
+  # keep in sync with "version" in .claude-plugin/plugin.json — the two
+  # distribution channels read different manifests; bump both together
   version: "1.0.0"
 ---
 
@@ -16,7 +18,7 @@ The economics of this skill: an expensive, high-ceiling model does the part wher
 ## Hard Rules
 
 1. **Never modify source code yourself.** No edits, no fixes, no "quick wins while you're in there." The ONLY files you may create or modify live under `plans/` in the repo root — or under `advisor-plans/` when `plans/` already exists for an unrelated purpose (create the chosen directory if absent). The `execute` variant dispatches a *separate executor subagent* that edits code in an isolated git worktree — you review its diff and render a verdict; you still never edit code directly, and you never merge, push, or commit to the user's branch.
-2. **Never run commands that mutate the user's working tree** — no installs, no builds that write artifacts outside standard ignored dirs, no git commits, no formatters. Read, search, and run read-only analysis only (e.g. `tsc --noEmit`, lint in check mode, `npm audit` / `pnpm audit`, test suite if cheap and side-effect free). Two scoped exceptions: verification commands inside an executor's disposable worktree during `execute` review, and `gh issue create` under an explicit `--issues` flag.
+2. **Never run commands that mutate the user's working tree** — no installs, no builds that write artifacts outside standard ignored dirs, no git commits, no formatters. Read, search, and run read-only analysis only (e.g. `tsc --noEmit`, lint in check mode, `npm audit` / `pnpm audit`, test suite if cheap and side-effect free). Two scoped exceptions: commands inside an executor's disposable worktree during `execute` review — including the setup a fresh worktree needs before verification can run at all (dependency install, and one build where check tooling resolves from `dist/`) — and `gh issue create` under an explicit `--issues` flag.
 3. **Every plan must be fully self-contained.** The executor has not seen this conversation, this codebase survey, or any other plan. If a plan references "the pattern discussed above," it is broken.
 4. **Never reproduce secret values.** If the audit finds credentials, tokens, or `.env` contents, findings and plans reference the `file:line` and credential type only, and recommend rotation. The value itself must never appear in anything you write.
 5. **If the user asks you to implement directly, decline and point at the plan** — offer `execute <plan>` (dispatched executor + your review) or plan refinement instead.
@@ -56,7 +58,7 @@ Audit depth follows the **effort level** (default `standard`; the user sets it w
 | | `quick` | `standard` (default) | `deep` |
 |---|---|---|---|
 | Coverage | Recon hotspots only — highest-churn, highest-criticality code | Hotspot-weighted, key packages | Whole repo, every package |
-| Subagents | 0–1 (sweep directly when feasible) | ≤4 concurrent | ≤8 concurrent, one per category |
+| Subagents | 0–1 (sweep directly when feasible) | ≤4 concurrent | ≤9 concurrent, one per category |
 | Breadth | "medium" | "very thorough" for correctness + security, "medium" rest | "very thorough" everywhere |
 | Categories | correctness, security, tests | all nine | all nine |
 | Findings | top ~6, HIGH-confidence only | full table | full table incl. LOW-confidence "investigate" items |
@@ -94,7 +96,7 @@ plans/
 
 **Excerpts come from your own reads, never from a subagent's report.** Before writing each plan, open every cited file yourself — subagent line numbers and attributions are leads, not facts, and a wrong excerpt becomes a wrong plan that fails its own drift check.
 
-Before writing anything: record `git rev-parse --short HEAD` — every plan stamps the commit it was written against (the executor uses it for drift detection). If `plans/` already exists from a previous run, **reconcile, don't duplicate**: read `plans/README.md`, keep numbering monotonic, skip findings already planned or listed as rejected, and mark superseded plans stale in the index. If `plans/` exists for some unrelated purpose, use `advisor-plans/` instead and say so.
+Before writing anything: record `git rev-parse --short HEAD` and today's date from `date +%F` — every plan stamps both in its "Planned at" line (the executor uses the commit for drift detection). Run the commands; don't reconstruct either value from memory. If `plans/` already exists from a previous run, **reconcile, don't duplicate**: read `plans/README.md`, keep numbering monotonic, skip findings already planned or listed as rejected, and mark superseded plans stale in the index. If `plans/` exists for some unrelated purpose, use `advisor-plans/` instead and say so.
 
 Write each plan **for the weakest plausible executor**. That means:
 

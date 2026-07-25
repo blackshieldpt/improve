@@ -214,4 +214,4 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJE
 - Are the STOP conditions specific to this plan's actual risks, not boilerplate?
 - Would a reviewer reading only "Why this matters" + "Done criteria" understand what they're approving?
 - No secret values anywhere in the file — locations and credential types only.
-- "Planned at" SHA is filled in and the in-scope paths in the drift check match the Scope section.
+- "Planned at" SHA and date are filled in from actual `git rev-parse --short HEAD` and `date +%F` output, not guessed, and the in-scope paths in the drift check match the Scope section.

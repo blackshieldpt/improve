@@ -130,7 +130,7 @@ Plans aren't fire-and-forget:
 
 ## What's different here
 
-The upstream project established the shape: an advisor that never writes code, plans written for a weaker executor, verification gates over prose. That holds. What this fork changed:
+The upstream project — [github.com/shadcn/improve](https://github.com/shadcn/improve) — established the shape: an advisor that never writes code, plans written for a weaker executor, verification gates over prose. That holds. What this fork changed:
 
 - **The audit playbook was rewritten section by section.** Every category now carries the discipline that keeps it honest, because they fail in different ways — security names the repo's trust boundaries before claiming an impact, performance requires evidence of scale before claiming a cost, tech debt requires evidence the code is actually changing, test coverage asks whether a test would *fail* rather than whether lines are covered.
 - **It stopped being a JavaScript playbook.** Correctness, security, and performance examples came almost entirely from one ecosystem, which reads as a grep list for that stack and silence for every other. Defect classes are now stated language-agnostically and instantiated across Go, Python, Rust, Ruby, Java, and SQL — and the plan template says out loud that its TypeScript example is an instance, not a form to fill in.

@@ -106,7 +106,7 @@ The goal is not a percentage — it's *which untested code is dangerous*.
 - **What the layers mean for this repo's shape**: the pyramid is not one-size. A **library/SDK**: unit = internals, integration = the public API exercised the way callers actually call it, e2e = the built artifact installed into a clean project and imported, across supported runtime and dependency versions. A **CLI**: e2e = invoke the built binary with real `argv` and assert exit code, stdout/stderr, and files written — not an in-process function call. A **data pipeline**: integration and e2e are golden-file runs over representative sample data. A **service/web app**: the conventional pyramid. Judge the repo against its own shape, not a generic one.
 - **Verification infrastructure**: is there a one-command way to know the codebase works, and *does that command actually work*? **Phase 1 owns the baseline finding** — where no working verification command exists, `SKILL.md` already makes "establish a verification baseline" finding #1 and requires it to precede risky plans in the dependency order, so don't file it a second time here. What belongs in this section is the narrower defect: a command that exists but is wrong or hollow — documented in the README but absent from the manifest, green while skipping most of the suite, or passing only because failures are swallowed.
 
-**When a test finding becomes a plan**, spec it so it can't be satisfied by tests that assert nothing — this is the category executors game most easily, and the review checklist in [closing-the-loop.md](closing-the-loop.md) exists because of it. Name the specific cases the plan must cover, failure modes included rather than the happy path alone; point at an existing test to copy structurally; and where the finding is a bug or regression, make the done criterion **"this test fails on current `HEAD` and passes after the change"** instead of "tests added". A test written after the fix and never once seen to fail proves nothing about the bug it claims to cover.
+**When a test finding becomes a plan**, spec it so it can't be satisfied by tests that assert nothing — this is the category executors game most easily, and the review checklist in [closing-the-loop.md](closing-the-loop.md) exists because of it. Name the specific cases the plan must cover, failure modes included rather than the happy path alone; point at an existing test to copy structurally; and where the finding is a bug or regression, make the done criterion **"this test fails at the plan's `Planned at` commit and passes after the change"** instead of "tests added" — pinned to that commit rather than to `HEAD`, which will have moved by the time an executor reads it. A test written after the fix and never once seen to fail proves nothing about the bug it claims to cover.
 
 ## 5. Tech Debt & Architecture
 
@@ -204,7 +204,7 @@ Forward-looking: not what's broken, but what this codebase wants to become. **Gr
 
 Direction findings use the standard format with these adaptations:
 
-- **Impact** is product/user value — who wants this, and why now.
+- **Impact** is product/user value — who wants this, and why now. Direction findings carry that statement *instead of* the HIGH/MED/LOW grade defined in the finding format: they aren't ranked against defects and don't go through the refutation pass, so a grade would imply a comparison that isn't being made.
 - **Cost of ownership**, stated alongside impact: everything proposed here has to be maintained, documented, tested, supported, and eventually deprecated. A plugin system is not a build cost, it's a permanent compatibility commitment. Say what the project takes on *forever*, not only what it takes to ship — §6 applies the same principle to dependencies, and a feature is a dependency you wrote yourself.
 - **Breaking-change obligation**: where the suggestion changes a public API or an on-disk/wire format, existing users are owed a migration path. Name it in the trade-off and size it with the migration discipline in §6 — a suggestion that quietly strands existing users is not a grounded option.
 - **Confidence** reflects how grounded the evidence is — not certainty that it's the right call.
@@ -238,7 +238,11 @@ Every finding, from every category and every subagent, comes back in this shape.
 ### [CATEGORY-NN] Short imperative title
 
 - **Evidence**: `path/file.ts:123` — one-sentence description of what's there. (Repeat per location; 2–5 strongest locations, note "and ~N similar sites" if widespread.)
-- **Impact**: What goes wrong / what's being paid because of this. Concrete: "every order-list render issues 1+N queries", not "suboptimal".
+- **Impact**: a grade, then one concrete sentence — "HIGH — every order-list render issues 1+N queries", never "suboptimal". **The grade is load-bearing**: it decides which findings get an adversarial verifier and where they land in the table, so assign it explicitly rather than leaving it implied by the prose.
+  - **HIGH** — data loss or corruption, a security exposure with a reachable path, user-visible breakage, or a cost paid continuously on a critical path (money, auth, the feature the repo exists for).
+  - **MED** — real and demonstrable but bounded: intermittent, on a non-critical path, degradation that only appears at scale this repo may not have reached, or debt with a named recurring cost.
+  - **LOW** — cosmetic, hypothetical, or contingent on something that isn't currently true. Worth reporting when the evidence is solid, but it doesn't earn a fix plan on its own.
+  - Between two grades, take the **lower** one and say why. An inflated grade consumes a verifier slot the finding doesn't need and pushes a real finding down the table.
 - **Effort**: S (hours) / M (a day-ish) / L (multi-day) — for the *fix*, including tests.
 - **Risk**: What the fix could break; LOW/MED/HIGH plus one line why.
 - **Confidence**: HIGH (read the code, certain) / MED (strong signal, needs verification) / LOW (smell, needs investigation). LOW-confidence findings may be reported but get an "investigate" plan, not a "fix" plan.

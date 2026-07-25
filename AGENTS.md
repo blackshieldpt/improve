@@ -5,7 +5,9 @@ Notes for agents working on this repository.
 ## What this repo is
 
 An agent skill, and nothing else. There is no application code, no build, no
-test suite, no dependencies — `git ls-files` returns ten markdown and JSON files.
+test suite, no dependencies — `git ls-files` returns a dozen markdown and JSON
+files. (Don't hardcode the count in prose; it goes stale, and this file claiming
+a wrong number is the exact defect it warns about below.)
 
 **The product is prompt text.** Every file under `skills/improve/` is read by a
 model at runtime and shapes its behavior. A wording change is a behavior change:
@@ -49,6 +51,16 @@ failure. Changing one is a deliberate design decision, not a cleanup.
    live token ends up quoted in a finding.
 6. **Plans are self-contained.** A plan that references "the pattern discussed
    above" is broken; its executor has seen no other file.
+7. **Nine audit categories.** The count is encoded in `SKILL.md`'s "all nine",
+   the `deep` subagent cap, the playbook's section headers, and the finding-ID
+   prefix table. Adding a tenth means touching all four; prefer a new bullet in
+   an existing category, which is how defensive posture and coupling
+   concentration were added.
+8. **Dependency changes are the maintainer's decision.** The audit reports
+   dependency *defects* (EOL runtime, abandoned package, non-reproducible
+   lockfile) as findings, and dependency *choices* (too heavy, overlapping,
+   droppable) as unranked observations. It never proposes removing or replacing
+   a dependency on its own initiative — what decides that isn't in the repo.
 
 ## The failure mode to watch for
 
@@ -58,25 +70,57 @@ local fix in one file routinely breaks an assumption in another. Every entry in
 the CHANGELOG's Fixed section is an instance of this. Before committing, check
 the known coupling points:
 
+### Cross-file couplings
+
 - **Plans directory.** `plans/` vs `advisor-plans/` — `SKILL.md` picks it,
   `plan-template.md` and `closing-the-loop.md` hardcode `plans/` and carry a
   substitution note. New hardcoded paths need to fall under that note.
 - **Executor vs reviewer instructions.** `plan-template.md` writes the plan the
   executor follows; `closing-the-loop.md` tells the reviewer what to verify. Any
   done criterion the executor is told to skip must be exempted on the reviewer
-  side, or every dispatch produces a guaranteed failure.
-- **Category count.** Nine categories, in `audit-playbook.md` sections, the
-  prefix table, `SKILL.md`'s "all nine", and the `deep` subagent cap.
-- **Finding prefixes.** The `audit-playbook.md` prefix table must stay aligned
-  with the `Category` field values in `plan-template.md`'s Status block.
-- **Concurrency caps.** Phase 2's effort table and the verifier cap in
-  `adversarial-verification.md` are stated per effort level; keep them coherent.
+  side, or every dispatch produces a guaranteed failure. Likewise, anything the
+  plan asks the executor to *report* needs a slot in the report format.
+- **Grades the prompts key on must be defined where the finding format lives.**
+  The refutation pass and the table ordering both key on Impact being
+  HIGH/MED/LOW; that scale is defined once, in the playbook's finding format. If
+  a rule anywhere keys on a grade, check the grade exists.
+- **Finding prefixes.** The prefix table must stay aligned with the `Category`
+  field values in `plan-template.md`'s Status block.
+- **Concurrency caps.** The effort table budgets audit subagents and verifier
+  subagents separately; `adversarial-verification.md` restates the verifier
+  numbers. Keep all three coherent.
 - **Version.** Duplicated in `.claude-plugin/plugin.json` and `SKILL.md`'s
   `metadata.version` because the two distribution channels read different
   manifests. Bump together.
-- **README.** Describes the workflow to humans. A behavior change in `SKILL.md`
-  usually needs a matching README edit — README drift is invisible to the skill
-  at runtime but is what users judge it by.
+- **README.** Describes the workflow to humans, and drifts silently because
+  nothing at runtime reads it. Any behaviour change in `SKILL.md` or the
+  references needs a matching README pass — its "How it works", "What makes the
+  plans executable", "Hard rules", and example table all mirror content that
+  lives elsewhere. Verify README claims against the skill files, never from
+  memory; that is exactly how they drifted before.
+- **Ecosystem-neutrality.** The plan template's worked example is deliberately
+  TypeScript and labelled as an instance with a substitution table. Prose
+  elsewhere should stay ecosystem-neutral or name several ecosystems — a bare
+  `pnpm test` outside that labelled example is a bug.
+
+### Ownership boundaries inside the playbook
+
+Several defects could plausibly be filed under two categories. Each pair is
+resolved *in both directions* in the text; if you add a category or move a
+bullet, re-check them, because a double-owned defect gets reported twice and the
+advisor dedups it by hand.
+
+| Defect | Owner | Other claimant |
+|---|---|---|
+| Build / test / CI latency | §7 DX | §3 Performance points here |
+| Verification baseline missing | Phase 1 in `SKILL.md` | §4 keeps only "command exists but is hollow" |
+| What is *in* the logs (PII, audit trail) | §2 Security | §7 owns whether logs are *usable* |
+| Comment & diagram drift | §8 Docs | §5 owns the structural drift they describe |
+| TODO/FIXME clusters | §5 as debt inventory | §9 as direction signal — different question |
+| Lockfile | §2 as attack surface | §6 as reproducibility |
+| Manifest entries nothing imports | §5 as dead code | §6 owns deps that *are* used but shouldn't be |
+| Contributor setup & agent files | §7 DX | §8's audience table points here |
+| Unranked maintainer options | Phase 3 presents them separately | §9 direction and §6 dependency choices both feed it |
 
 ## Verification
 
@@ -95,6 +139,15 @@ grep -c '^| `[A-Z]*` |' skills/improve/references/audit-playbook.md
 # every reference link from SKILL.md resolves
 grep -oh 'references/[a-z-]*\.md' skills/improve/SKILL.md | sort -u |
   while read f; do [ -f "skills/improve/$f" ] && echo "ok $f" || echo "MISSING $f"; done
+
+# every §N cross-reference points at a section that exists
+A=skills/improve/references/audit-playbook.md
+grep -rho '§[0-9]' skills/ | sort -u | tr -d '§' |
+  while read n; do [ "$n" -le "$(grep -c '^## [1-9]\.' $A)" ] || echo "DANGLING §$n"; done
+
+# no unlabelled ecosystem-specific commands outside the template's worked example
+grep -rn 'pnpm\|npm run' skills/improve/SKILL.md skills/improve/references/closing-the-loop.md \
+  skills/improve/references/audit-playbook.md skills/improve/references/adversarial-verification.md
 
 # frontmatter and manifests parse
 python3 -c "import yaml;yaml.safe_load(open('skills/improve/SKILL.md').read().split('---')[1])"

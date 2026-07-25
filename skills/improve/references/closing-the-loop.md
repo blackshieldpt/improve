@@ -55,14 +55,14 @@ NOTES: anything the reviewer should know (deviations, surprises, judgment calls)
 
 ### Review (the advisor's real job here)
 
-Note on fresh worktrees: they share git history but not `node_modules` or build artifacts — the executor must install dependencies first, and check tooling that resolves from `dist/` may need one build even though the plan's command table (recon'd in the main tree) didn't mention it. Expect this; it isn't a deviation.
+Note on fresh worktrees: they share git history but **not installed dependencies or build outputs** — whatever the ecosystem calls them (`node_modules`, `.venv`, `target/`, `vendor/`, a module cache). The executor has to install first, and any check that resolves from build output may need one build even though the plan's command table, recon'd in the main tree, didn't mention it. Expect this; it isn't a deviation.
 
 Review like a tech lead reviewing a PR against the spec — never fix anything yourself:
 
 1. **Re-run every done criterion** in the worktree. Don't trust the executor's report — verify. One exemption: the plan's "`plans/README.md` status row updated" criterion does not apply — you told the executor to skip it and you own the index. Never fail or revise an executor over it.
 2. **Scope compliance**: `git -C <worktree> diff --stat` against the plan's in-scope list. Any file outside scope fails review, full stop.
 3. **Read the full diff.** Judge it against "Why this matters" (does it solve the actual problem?) and the repo conventions named in the plan (does it look like the rest of the codebase?).
-4. **Audit the new tests.** Executors game criteria — a test that asserts nothing meaningful passes `pnpm test` and proves nothing. Read what the tests assert.
+4. **Audit the new tests** against the plan's test plan, not just its done criteria. Executors game criteria: a test that asserts nothing meaningful still turns the suite green and proves nothing. Read what each test actually asserts, check the cases named in the plan are the cases covered and at the layer specified, and for a bug fix confirm the claim that the test failed before the change — re-run it at the plan's `Planned at` commit if the report doesn't evidence it.
 
 ### Verdict
 

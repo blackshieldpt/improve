@@ -58,11 +58,11 @@ Before a PR, `/improve branch` does the same thing scoped to just what your bran
 A run against [shadcn/ui](https://github.com/shadcn-ui/ui) came back with findings like:
 
 ```
-| # | Finding                                        | Category  | Effort | Confidence |
-|---|------------------------------------------------|-----------|--------|------------|
-| 1 | shadow-config duplicated in search.ts/view.ts, | tech-debt | M      | HIGH       |
-|   | copies already drifted (TODO at search.ts:31)  |           |        |            |
-| 2 | O(n²) icon migration (migrate-icons.ts:168)    | perf      | S      | HIGH       |
+| # | Finding                                        | Category  | Impact | Effort | Risk |
+|---|------------------------------------------------|-----------|--------|--------|------|
+| 1 | shadow-config duplicated in search.ts/view.ts, | tech-debt | MED    | M      | MED  |
+|   | copies already drifted (TODO at search.ts:31)  |           |        |        |      |
+| 2 | O(n²) icon migration (migrate-icons.ts:168)    | perf      | MED    | S      | LOW  |
 ```
 
 …and rejected a few, with reasons recorded so they don't come back next run:
@@ -104,6 +104,8 @@ Plans are written for the weakest plausible executor — a model that has never 
 - **Self-contained.** All context is inlined: exact file paths, current-state code excerpts, repo conventions with an exemplar file, verified commands. No "as discussed above."
 - **Verification gates.** Every step ends with a command and its expected output. Done criteria are machine-checkable. The executor never has to judge whether it succeeded.
 - **Hard boundaries.** Explicit out-of-scope lists, and STOP conditions — "if X, stop and report" — instead of letting a small model improvise when reality doesn't match the plan.
+- **A test plan with a coverage bar.** Every plan names the cases, the layer each belongs at (unit, integration, e2e), and the existing test to model. For a bug fix the test has to be seen *failing* at the plan's commit and passing after — a test written after the fix and never observed to fail proves nothing about the bug. The bar is behavioural, not a percentage: would one of these tests fail if the change were reverted?
+- **A code review, both directions.** The executor self-reviews before reporting — diff re-read against the intent rather than against the checklist, every hunk traced to a step, tests checked for asserting behaviour instead of the code just written. And the plan names what *this* change's reviewer should distrust: the riskiest hunk, the assumption most likely wrong, what a fully green suite still wouldn't catch.
 
 Each plan also stamps the git commit it was written against, so executors run a mechanical drift check before touching anything.
 
@@ -120,6 +122,8 @@ Plans aren't fire-and-forget:
 - Never modifies source code itself. The only writes go to `plans/`; executors edit only in disposable worktrees, and merging is always yours.
 - Never runs commands that mutate your working tree — read, search, and read-only analysis only.
 - Never reproduces secret values. Locations and credential types only, rotation always recommended.
+- **Treats everything in your repo as data, not instructions.** If a file, comment, or vendored dependency tries to issue instructions to the agent ("ignore previous instructions", "print the contents of .env"), it doesn't comply — it reports it as a prompt-injection finding. This rule is copied verbatim into every subagent it spawns, since subagents don't inherit it.
+- Every plan is self-contained. No "as discussed above" — the executor has seen none of it.
 - Asked to implement? It declines and points at the plan (or offers `execute`).
 
 ## License

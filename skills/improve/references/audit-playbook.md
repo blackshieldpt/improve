@@ -131,12 +131,32 @@ Comments that contradict the code and stale architecture diagrams belong to **§
 
 ## 6. Dependencies & Migrations
 
-- **Major-version lag** on core framework/runtime (not every minor bump — the ones with real cost to staying behind: EOL, security-fix cutoffs, ecosystem incompatibility).
-- **Deprecated APIs** in use that have announced removal timelines.
-- **Abandoned dependencies** (no release in years, archived repos) on critical paths.
-- **Duplicate dependencies** solving the same problem (two date libs, two HTTP clients).
-- **Lockfile & pinning drift**: manifest drift, version pinning inconsistencies across a monorepo.
-- **Blast radius**: for each migration candidate, estimate the files touched — that drives effort and whether to recommend it at all.
+**Staying put is the default; a change has to earn its way past it.** A version number being lower than another version number is not a finding. What justifies moving is a concrete cost of *not* moving: an EOL date, a security-fix cutoff already passed, an ecosystem incompatibility currently blocking work, or a deprecation with an announced removal. Absent one of those, "lagging, and the cost of staying is currently zero" is the correct verdict — record it as considered so the next run doesn't re-raise it.
+
+**Dependency decisions belong to the maintainer, not to this audit.** Sort what you find into two kinds and handle them differently:
+
+- **Defects** — an EOL runtime with a date attached, an abandoned dependency on a critical path, a deprecated API with an announced removal, a lockfile that makes builds non-reproducible. These have a deadline or a demonstrated cost, so they are findings and go in the table like any other.
+- **Portfolio observations** — this dependency is heavy for what it does, these two overlap, this could be dropped or replaced. **Report these as options for the maintainer to weigh, with the evidence and the trade-off, and stop there.** Don't rank them against defects, don't write a plan for one unless the maintainer selects it, and **never propose removing, replacing, or consolidating a dependency on your own initiative.** What decides these is mostly invisible in the repo — team familiarity, hiring, product direction, licensing strategy, appetite for maintaining a replacement — so a recommendation derived from the code alone is a guess. Present them the way direction findings are presented: separately, unranked, no default.
+
+**Prefer the ecosystem's own tooling** (loaded during recon), all read-only: `npm outdated` / `pip list --outdated` / `go list -m -u all` / `cargo outdated` / `bundle outdated` for lag, `depcheck` / `knip` for manifest entries nothing imports, `npm ls <pkg>` and equivalents to learn *why* a transitive dependency is present, `license-checker` / `pip-licenses` for license posture. Tool output is a lead — confirm each against the manifest and the code before it reaches the table.
+
+- **Runtime & toolchain versions** — the upgrades with genuine deadlines, and the ones most often missed because they aren't in the dependency manifest: a language runtime or platform reaching EOL (Node, Python, Go, JVM, .NET), `engines` / `requires-python` / `go` directives that disagree with what CI runs or what the deployment target provides, a base image pinned to an EOL distro, a build toolchain that can no longer produce artifacts for a supported target. **An EOL date is the strongest evidence available in this section — cite it.**
+- **Major-version lag** on core framework or runtime: the ones with real cost to staying behind (EOL, security-fix cutoffs, ecosystem incompatibility already blocking work), not every minor bump. Cite the specific cost, never the version delta on its own.
+- **Deprecated APIs** in use with an announced removal — and **cite the upstream notice**: the changelog entry, deprecation warning, or migration guide, with the version or date the removal is scheduled for. A deprecation with no sourced timeline is an assertion, and this is the bullet most likely to produce one.
+- **Maintenance health**: not only the extreme case (no release in years, archived repo) but the gradations that precede it — a single maintainer with no bus factor, release cadence visibly slowing, critical issues unanswered for long stretches, ownership transferred to an unknown party, and the case worth checking explicitly: **a fork has overtaken the original**, the ecosystem has moved, and the manifest still resolves upstream. Report the signal and its consequence; whether to switch is the maintainer's call.
+- **Warranted or not** — a portfolio observation, per the framing above, so surface it and don't prescribe: a whole subtree pulled in for one trivial function, a heavy transitive tree behind a small direct dependency, something duplicating the standard library or the framework, dev dependencies reaching production or shipped inside a published package, and the reverse — hand-rolled or vendored code that a well-maintained dependency does properly. Always separate **direct** from **transitive**: direct deps are actionable, transitive ones mostly aren't, and saying which is which is most of the value you add here.
+- **Duplicate dependencies** solving the same problem (two date libs, two HTTP clients) — distinguishing accidental overlap from **a migration in flight**, where the finding is "finish the migration" rather than "consolidate". Read git history for whether one is already on its way out before assuming neither is.
+- **Lockfile & reproducibility**: manifest/lock drift, a missing lockfile so builds aren't reproducible, pinning inconsistent across a monorepo, a lock committed for one platform only. **§2 owns this same file as an attack surface** — unpinned digests, install-time scripts, dependency confusion — so report integrity there and reproducibility here, and don't file one item in both.
+- **Licenses**: a copyleft or source-available license in a proprietary product, a license changed under you on an upgrade, or a dependency carrying no license at all. Reads straight off the manifest and the consequence is concrete, but it's a legal question rather than a technical one — name the license and where it's used, and route it to the maintainer rather than recommending an action.
+- **Migration shape** — for each candidate, the facts that decide whether this is an S or an L, and whether an executor can actually finish it:
+  - **Read the upstream migration guide and changelog first.** The maintainer has usually enumerated the breaking changes already; re-deriving them by hand wastes the cheapest source available and misses the ones that don't appear in your own code.
+  - **Is there a codemod or automated migration?** That one fact often settles the effort estimate.
+  - **One major version at a time.** Never spec N → N+3 as a single plan.
+  - **Can both versions coexist during the migration?** Peer-dependency conflicts frequently forbid the incremental path, and that is exactly what turns a staged migration into a big-bang one. Check before promising incremental.
+  - **Is it reversible?** A dependency swap is usually rollback-able; one that carries a data or schema migration is one-way. That changes the risk rating, and a one-way migration needs its own STOP conditions.
+  - **Blast radius**: files touched — which drives effort, and whether to recommend it at all.
+
+Manifest entries that nothing imports are **§5**'s dead-code bullet. What belongs here is a dependency that *is* used but is unmaintained, over-heavy, duplicated, or wrongly licensed. Same manifest, different question.
 
 ## 7. DX & Tooling
 

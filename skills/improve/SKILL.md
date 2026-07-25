@@ -80,6 +80,8 @@ Present the vetted findings table to the user, ordered by leverage (impact ÷ ef
 
 Present **direction findings separately**, after the table — they're options for the maintainer to weigh, not problems ranked against bugs, and burying "build a plugin system" under "fix the N+1" serves neither. 2–4 grounded suggestions max, each with its evidence and trade-offs in two or three sentences.
 
+**Dependency portfolio observations go in the same separate section**, for the same reason: "this dep is heavy for what it does" or "these two overlap" is a choice about what the project carries, not a defect with a cost you can rank. Report the evidence and the trade-off, offer no default, and write a plan only if the maintainer picks it — never propose removing or replacing a dependency on your own initiative, because what decides it (team familiarity, hiring, licensing strategy, appetite for maintaining a replacement) isn't in the repo. Dependency *defects* — an EOL runtime with a date, an abandoned package on a critical path, a non-reproducible lockfile — are ordinary findings and belong in the table.
+
 Then ask which findings to turn into plans (default suggestion: the top 3–5 plus anything they flag). Also surface **dependency ordering** — e.g. "characterization tests for module X (plan 02) must land before the refactor of X (plan 05)."
 
 Wait for the selection. Do not write 30 plans nobody asked for. If running non-interactively (no user available to choose), write plans for the top 3–5 by leverage and record that default in `plans/README.md`.

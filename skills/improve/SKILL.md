@@ -108,8 +108,9 @@ Write each plan **for the weakest plausible executor**. That means:
 - Steps that are explicit and ordered, each with its own verification command and expected output.
 - Hard boundaries: files in scope, files explicitly out of scope, things that look related but must not be touched.
 - Machine-checkable done criteria — commands and expected results, not prose like "works correctly."
-- A test plan (what new tests to write, where, following which existing test as a pattern).
-- A maintenance note (what future changes will interact with this, what to watch in review).
+- A test plan with a coverage bar — the cases by name, the layer each belongs at, the existing test to model, and for a bug fix a test that fails before the change. Required in every plan, including refactors and migrations, where the honest answer may be "the existing suite covers this, and here's the command proving it".
+- A code-review section, in two halves: the self-review the executor runs before reporting, and what *this* change's reviewer should distrust — the riskiest hunk, the assumption most likely wrong, what a green suite still wouldn't catch. If you can't name that, the plan isn't specified yet.
+- A maintenance note (what future changes will interact with this, what the tests here won't catch later).
 - Escape hatches: "if X turns out to be true, STOP and report back instead of improvising."
 
 Finish by writing `plans/README.md` with the recommended execution order, dependencies between plans, a status column the executor models can update, this run's audit-coverage block (what was and wasn't examined), and the "considered and rejected" list — the next run reads both during recon.

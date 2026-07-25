@@ -10,6 +10,28 @@ Three properties make a plan executable by a weaker model:
 
 File naming: `plans/NNN-short-slug.md`, numbered in recommended execution order.
 
+**The worked example below is one repo's instance, not a form to copy.** It happens
+to be a TypeScript service using pnpm, because a template with placeholder strings
+teaches nothing. **The structure is fixed; every path, command, filename, and tool
+name is replaced with the audited repo's own** — verified during recon, never
+guessed and never carried over from this file. A plan whose command table says
+`pnpm test` for a Go repo fails on its first gate, and a weak executor will try to
+make it work rather than stop.
+
+Rough shape of the substitutions, to make the point concrete:
+
+| Template says | Go | Python | Rust | Java | Ruby |
+|---|---|---|---|---|---|
+| `pnpm install` | `go mod download` | `uv sync` / `pip install -e .` | `cargo fetch` | `mvn -q dependency:go-offline` | `bundle install` |
+| `pnpm typecheck` | `go vet ./...` / `go build ./...` | `mypy .` | `cargo clippy -- -D warnings` | `mvn -q compile` | `srb tc` (or none) |
+| `pnpm test -- <filter>` | `go test ./pkg/... -run X` | `pytest -k X` | `cargo test X` | `mvn -q test -Dtest=X` | `bundle exec rspec path` |
+| `pnpm lint` | `golangci-lint run` | `ruff check .` | `cargo fmt --check` | `mvn -q spotless:check` | `rubocop` |
+| `src/orders/api.ts` | `internal/orders/api.go` | `orders/api.py` | `src/orders/api.rs` | `.../orders/Api.java` | `app/orders/api.rb` |
+
+Not every repo has every row. Omit what doesn't exist rather than inventing it —
+and if there's no static check or no test command at all, that's a finding for the
+audit and a prerequisite plan, not a gap to paper over here.
+
 **Plans directory.** This file writes `plans/` throughout. If the advisor chose
 `advisor-plans/` instead (because `plans/` was already taken for an unrelated
 purpose), substitute that path **everywhere** — the executor instructions, the
@@ -71,14 +93,18 @@ The facts the executor needs, inlined — never "as discussed" or "see audit":
 
 ## Commands you will need
 
-| Purpose   | Command                  | Expected on success |
-|-----------|--------------------------|---------------------|
-| Install   | `pnpm install`           | exit 0              |
-| Typecheck | `pnpm typecheck`         | exit 0, no errors   |
-| Tests     | `pnpm test -- <filter>`  | all pass            |
-| Lint      | `pnpm lint`              | exit 0              |
+| Purpose            | Command                  | Expected on success |
+|--------------------|--------------------------|---------------------|
+| Install / restore  | `pnpm install`           | exit 0              |
+| Static check       | `pnpm typecheck`         | exit 0, no errors   |
+| Tests (scoped)     | `pnpm test -- <filter>`  | all pass            |
+| Tests (full suite) | `pnpm test`              | all pass            |
+| Lint / format      | `pnpm lint`              | exit 0              |
 
-(Exact commands from this repo — verified during recon, not guessed.)
+(This repo's exact commands, verified during recon — not guessed, and not carried
+over from the template. Drop rows the repo doesn't have. Note anything that needs
+setup a fresh worktree lacks: a build before checks resolve, a container for
+integration tests, a seeded database.)
 
 ## Suggested executor toolkit
 
@@ -86,10 +112,11 @@ The facts the executor needs, inlined — never "as discussed" or "see audit":
 loaded — not from a guess about what might be installed. Skip the section when
 recon found none.)
 
-- Skills the executor should invoke, and for what: "use
-  `vercel-react-best-practices` when writing the memoization in step 3". If a
-  skill informed a finding or a step here, name it — the executor is a weaker
-  model and needs the same capability you had when you specified the work.
+- Skills the executor should invoke, and for what — naming the actual skill recon
+  loaded for this stack, e.g. "use the `<orm-name>` skill when rewriting the query
+  in step 2" or "use the `<framework>` best-practices skill for the caching in
+  step 3". If a skill informed a finding or a step here, name it: the executor is
+  a weaker model and needs the same capability you had when you specified the work.
 - Reference docs worth reading before starting, by path or URL.
 
 ## Scope
@@ -127,13 +154,67 @@ line).
 is never broken between steps when possible — e.g. add new path, switch
 callers, then remove old path.)
 
-## Test plan
+## Test plan & coverage
 
-- New tests to write, in which file, covering which cases (list them:
-  happy path, the specific bug/regression this plan fixes, named edge cases).
-- Which existing test to use as the structural pattern:
-  "model after `src/users/api.test.ts`".
-- Verification: `<test command>` → all pass, including N new tests.
+Required in every plan — including refactors, migrations, and docs changes, where
+the answer may legitimately be "the existing suite covers this, and here is the
+command that proves it".
+
+- **Cases to cover, named individually**: the happy path, the specific
+  bug/regression this plan addresses, and each edge case by name. "Add tests for
+  the new function" is not a test plan.
+- **The layer each case belongs at** — unit, integration, or e2e — choosing the
+  cheapest layer that can actually catch the defect (see §4 of the audit
+  playbook). Say which. Without a layer named, an executor writes whatever is
+  easiest, which is usually a unit test mocking the thing that actually broke.
+- **For a bug or regression fix, the test must be seen failing first**: state it as
+  a criterion — `<test command>` fails at `<planned-at SHA>` with `<the specific
+  failure>`, and passes after the change. A test written after the fix and never
+  observed to fail proves nothing about the bug it claims to cover.
+- **Structural exemplar**: "model after `src/users/api.test.ts`" — match the
+  repo's existing test idiom (setup, fixtures, naming, assertion style) rather
+  than importing one.
+- **Coverage bar for the changed code**, stated as behaviour and not a
+  percentage: which new or changed branches must be exercised, including the
+  error paths. The check to apply: *would one of these tests fail if this change
+  were reverted or stubbed out?* If not, they assert nothing about the work and
+  the plan's done criteria are hollow.
+- **What these tests deliberately do not cover**, and why — so the reviewer isn't
+  left guessing whether a gap is an oversight or a decision.
+- **Verification**: `<test command>` → all pass, including the N new tests.
+
+## Code review
+
+Two audiences. Both are part of the plan, not optional extras.
+
+**Executor: self-review before you report.** Do these and state the outcome of
+each in your report:
+
+- Re-read the full diff against "Why this matters". Does it solve the stated
+  problem, or does it only satisfy the done criteria? Those are different, and
+  the second one passing is how a wrong change ships.
+- Every hunk traces to a numbered step. Anything that doesn't is out of scope —
+  revert it, even if it's an improvement.
+- The new tests assert on observable behaviour, not on the implementation you
+  just wrote. A test that mirrors the code will pass for a broken rewrite.
+- Conventions match the exemplar file named in "Current state" — compare against
+  it directly rather than from memory.
+- Nothing left behind: debug output, commented-out code, stray TODOs, unrelated
+  formatting churn, temporary files.
+- Report honestly. Any verification you skipped or that failed, and any deviation
+  from the plan with its reason. A documented deviation is judged on merit; an
+  undocumented one is a review failure.
+
+**Reviewer: what to scrutinize in this specific change.** Written by the advisor,
+per plan — never boilerplate:
+
+- `<the riskiest hunk and why — e.g. "the batching in step 2 changes failure
+  semantics: one bad item used to fail one request, now it fails the batch">`
+- `<the assumption most likely to be wrong, and how to check it cheaply>`
+- `<what a fully green test suite would still not catch here>`
+
+If you can't name what a reviewer should distrust, the plan is under-specified —
+go back and find it before handing this over.
 
 ## Done criteria
 
@@ -141,8 +222,10 @@ Machine-checkable. ALL must hold:
 
 - [ ] `pnpm typecheck` exits 0
 - [ ] `pnpm test` exits 0; new tests for <X> exist and pass
-- [ ] `grep -rn "<old pattern>" src/` returns no matches
+- [ ] the regression test for <X> fails at `<planned-at SHA>` and passes now
+- [ ] `grep -rn "<old pattern>" <the repo's source root>` returns no matches
 - [ ] No files outside the in-scope list are modified (`git status`)
+- [ ] Code-review self-check completed; its outcome is in the report
 - [ ] `plans/README.md` status row updated — **not applicable if a reviewer
       dispatched you and told you they maintain the index**
 
@@ -162,8 +245,11 @@ For the human/agent who owns this code after the change lands:
 
 - What future changes will interact with this (e.g. "if pagination is added
   to this endpoint, the batching in step 2 must be revisited").
-- What a reviewer should scrutinize in the PR.
 - Any follow-up explicitly deferred out of this plan (and why).
+- What the tests here will *not* catch if someone changes this later.
+
+(What a reviewer should scrutinize now lives in "Code review" above; this section
+is for whoever owns the code months from now.)
 ```
 
 ---
@@ -215,6 +301,9 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJE
 - Is every verification a command with an expected result, not a judgment ("make sure it works")?
 - Does every step name exact files and symbols, not "the relevant module"?
 - Are the STOP conditions specific to this plan's actual risks, not boilerplate?
+- Does every path, command, and tool name come from *this* repo, with nothing carried over from this template's TypeScript example?
+- Does the test plan name a layer per case, and — for a bug fix — a test that fails before the change?
+- Does "Code review" name what a reviewer should distrust in this specific change, rather than generic advice?
 - Would a reviewer reading only "Why this matters" + "Done criteria" understand what they're approving?
 - No secret values anywhere in the file — locations and credential types only.
 - "Planned at" SHA and date are filled in from actual `git rev-parse --short HEAD` and `date +%F` output, not guessed, and the in-scope paths in the drift check match the Scope section.

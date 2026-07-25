@@ -46,6 +46,10 @@ STATUS: COMPLETE | STOPPED
 STEPS: per step — done/skipped + verification command result
 STOPPED BECAUSE: (only if STOPPED) which STOP condition, what was observed
 FILES CHANGED: list
+SELF-REVIEW: the outcome of each item in the plan's "Code review" self-review
+             list — not "done", but what you found and what you did about it
+TESTS: which cases from the plan's test plan you covered, at which layer, and
+       (for a bug fix) confirmation the test failed before the change
 NOTES: anything the reviewer should know (deviations, surprises, judgment calls)
 ```
 

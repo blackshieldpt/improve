@@ -5,24 +5,45 @@ reach the user's table. Subagents over-report; so does the host agent. This pass
 is what separates "I re-read the code and it still looks wrong" from "I tried to
 kill this and couldn't."
 
-**When to run it.** Always for security findings and anything you would call
-HIGH impact. Always at `deep`. Skip it at `quick`, and skip it for findings whose
-evidence is a single unambiguous line you have already read yourself (a typo in a
-doc, a missing index the schema plainly lacks).
+**When to run it.** For **every finding rated HIGH or MEDIUM impact, in any
+category**. Security is not a special case — it was only the first place this
+failure mode was noticed. An invented impact is in fact *more* likely where
+impact is inferred rather than read: a performance claim that assumes production
+scale, a tech-debt claim that assumes the code is changing, a correctness claim
+about a path nothing reaches.
 
-**How to cluster.** 3–4 related findings per verifier, grouped **by subsystem,
-not by severity** — a verifier that stays in one area builds a working mental
-model of it; one that hops across four areas re-learns the codebase four times.
+Two exemptions. Skip at `quick` — an explicit cost of that tier, which the final
+report should state. And skip any finding whose **evidence is its impact**, with
+no inferred chain to attack: a hardcoded credential at a cited line, a doc that
+contradicts the code, a missing index the schema plainly lacks. The test is not
+how short the evidence is, it's whether there is a causal claim on top of it.
+Where impact was inferred from mechanism, it gets verified.
 
-**How many.** Same concurrency ceiling as the audit phase: **≤4 concurrent at
-`standard`, ≤9 at `deep`** (this pass is skipped at `quick`). Clustering already
-absorbs most of the fan-out — 4 verifiers cover 12–16 findings — so the cap binds
-rarely. When it does bind, spend the slots in this order and then stop: security
-findings, then anything you'd rate HIGH impact, then findings whose evidence is a
-multi-step causal chain (the shape that most often has an invented consequence).
-Do not queue a second wave to reach everything; a HIGH-confidence finding you
-read carefully yourself is an acceptable output, and an unbounded verification
-pass on a large finding set costs more than the audit that produced it.
+LOW-impact findings don't need this; they already carry an "investigate" framing
+rather than a fix. At `deep`, extend the pass to them anyway if slots remain.
+
+**How to cluster.** 3–4 related findings per verifier, grouped **by subsystem** —
+a verifier that stays in one area builds a working mental model of it, while one
+hopping across four areas re-learns the codebase four times. Impact tier decides
+*which* findings get a verifier and in what order when slots are scarce (below);
+subsystem decides *how they're grouped* once chosen. Don't split a coherent
+subsystem cluster just because its findings sit in different tiers — a verifier
+already holding that area's model is the cheapest place to check one more claim.
+
+**How many.** The ceiling is on *concurrency*, not total: **≤4 concurrent at
+`standard`, ≤9 at `deep`**, matching the audit phase. Clustering absorbs most of
+the fan-out — 3–4 findings per verifier means 4 concurrent verifiers cover 12–16
+findings — and running a second or third wave sequentially is fine, since the
+cost is bounded by the number of HIGH and MEDIUM findings rather than by the
+cap.
+
+Where the finding set is large enough that verifying all of them would cost more
+than the audit that produced them, prioritize in this order and label the
+remainder: **HIGH impact before MEDIUM**; within a tier, findings whose evidence
+is a multi-step causal chain first (the shape that most often carries an invented
+consequence), then findings whose consequence would be irreversible if acted on
+(a deletion, a migration, a dependency swap), then the rest. Security is a
+tiebreaker inside a tier, not a tier of its own.
 
 **Say what you skipped.** Findings that went unverified are reported as
 self-vetted only, and the index's audit-coverage block records that the

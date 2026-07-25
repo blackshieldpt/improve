@@ -133,7 +133,8 @@ Machine-checkable. ALL must hold:
 - [ ] `pnpm test` exits 0; new tests for <X> exist and pass
 - [ ] `grep -rn "<old pattern>" src/` returns no matches
 - [ ] No files outside the in-scope list are modified (`git status`)
-- [ ] `plans/README.md` status row updated
+- [ ] `plans/README.md` status row updated — **not applicable if a reviewer
+      dispatched you and told you they maintain the index**
 
 ## STOP conditions
 

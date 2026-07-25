@@ -92,45 +92,45 @@ Build, test, and CI latency is developer-facing feedback loop rather than produc
 
 The goal is not a percentage — it's *which untested code is dangerous*.
 
-- Map the critical paths (money, auth, data mutation, the feature the repo exists for) and check which have zero or trivial coverage.
-- Modules with high churn (git log) + no tests = top refactor risk; flag as "characterization tests first" candidates.
-- Existing test quality: tests that assert nothing meaningful, heavy mocking that tests the mocks, snapshot tests nobody reads, flaky patterns (real timers, real network, order dependence).
-- Missing test layers: unit-only suites with zero integration coverage on API boundaries, or the inverse (slow E2E for what a unit test would catch).
-- Verification infrastructure: is there a one-command way to know the codebase works? If not, that's finding #1 and a prerequisite plan for any risky change.
+- **Critical-path coverage**: map the critical paths (money, auth, data mutation, the feature the repo exists for) and check which have zero or trivial coverage.
+- **Churn without tests**: modules with high churn (git log) and no tests = top refactor risk; flag as "characterization tests first" candidates.
+- **Existing test quality**: tests that assert nothing meaningful, heavy mocking that tests the mocks, snapshot tests nobody reads, flaky patterns (real timers, real network, order dependence).
+- **Missing test layers**: unit-only suites with zero integration coverage on API boundaries, or the inverse (slow E2E for what a unit test would catch).
+- **Verification infrastructure**: is there a one-command way to know the codebase works? If not, that's finding #1 and a prerequisite plan for any risky change.
 
 ## 5. Tech Debt & Architecture
 
-- Duplication: the same logic re-implemented in 3+ places (search for near-identical functions/components); divergent copies that have drifted.
-- Layering violations: UI importing from data layer internals, circular dependencies, "utils" modules that became a junk drawer with high fan-in.
-- Dead code: unexported-and-unused modules, feature flags fully rolled out but still branching, commented-out blocks with no explanation, deps in the manifest no longer imported.
-- God objects/modules: files an order of magnitude larger than the repo median that everything touches; functions with double-digit parameters or deep conditional nesting.
-- Inconsistent patterns: three ways of doing data fetching / error handling / styling in the same repo — pick the winner (the one the team converged on most recently) and plan the consolidation.
-- Abstraction mismatches: premature abstractions with a single implementation, or missing abstractions where the same change always requires touching N files in lockstep.
+- **Duplication**: the same logic re-implemented in 3+ places (search for near-identical functions/components); divergent copies that have drifted.
+- **Layering violations**: UI importing from data layer internals, circular dependencies, "utils" modules that became a junk drawer with high fan-in.
+- **Dead code**: unexported-and-unused modules, feature flags fully rolled out but still branching, commented-out blocks with no explanation, deps in the manifest no longer imported.
+- **God objects/modules**: files an order of magnitude larger than the repo median that everything touches; functions with double-digit parameters or deep conditional nesting.
+- **Inconsistent patterns**: three ways of doing data fetching / error handling / styling in the same repo — pick the winner (the one the team converged on most recently) and plan the consolidation.
+- **Abstraction mismatches**: premature abstractions with a single implementation, or missing abstractions where the same change always requires touching N files in lockstep.
 
 ## 6. Dependencies & Migrations
 
-- Major-version lag on core framework/runtime (not every minor bump — the ones with real cost to staying behind: EOL, security-fix cutoffs, ecosystem incompatibility).
-- Deprecated APIs in use that have announced removal timelines.
-- Abandoned dependencies (no release in years, archived repos) on critical paths.
-- Duplicate dependencies solving the same problem (two date libs, two HTTP clients).
-- Lockfile/manifest drift, version pinning inconsistencies across a monorepo.
-- For each migration candidate, estimate blast radius (files touched) — that drives effort and whether to recommend it at all.
+- **Major-version lag** on core framework/runtime (not every minor bump — the ones with real cost to staying behind: EOL, security-fix cutoffs, ecosystem incompatibility).
+- **Deprecated APIs** in use that have announced removal timelines.
+- **Abandoned dependencies** (no release in years, archived repos) on critical paths.
+- **Duplicate dependencies** solving the same problem (two date libs, two HTTP clients).
+- **Lockfile & pinning drift**: manifest drift, version pinning inconsistencies across a monorepo.
+- **Blast radius**: for each migration candidate, estimate the files touched — that drives effort and whether to recommend it at all.
 
 ## 7. DX & Tooling
 
-- Missing or broken: typecheck script, lint config, formatter, pre-commit hooks, editorconfig.
-- Slow feedback loops — this category owns build, test, and CI latency (§3 covers product performance only, and points here): dev-server or test startup measured in minutes, no watch mode, CI without dependency or build caching, redundant pipeline steps, and test suites that run serially where they could shard or parallelize. Cite the observed duration where CI config or logs give you one.
-- Onboarding friction: README setup steps that are wrong/incomplete, undocumented required env vars, no `.env.example`.
-- Missing `CLAUDE.md`/`AGENTS.md` — for repos where agents will execute the plans, this is high-leverage: recommend one and include its outline as a plan.
-- Error messages/logging: unstructured logs on services, missing request IDs/correlation, debugging requiring code changes.
+- **Missing or broken**: typecheck script, lint config, formatter, pre-commit hooks, editorconfig.
+- **Slow feedback loops** — this category owns build, test, and CI latency (§3 covers product performance only, and points here): dev-server or test startup measured in minutes, no watch mode, CI without dependency or build caching, redundant pipeline steps, and test suites that run serially where they could shard or parallelize. Cite the observed duration where CI config or logs give you one.
+- **Onboarding friction**: README setup steps that are wrong/incomplete, undocumented required env vars, no `.env.example`.
+- **Missing `CLAUDE.md`/`AGENTS.md`** — for repos where agents will execute the plans, this is high-leverage: recommend one and include its outline as a plan.
+- **Error messages/logging**: unstructured logs on services, missing request IDs/correlation, debugging requiring code changes.
 
 ## 8. Docs
 
 Lowest default priority — only flag where absence has a concrete cost:
 
-- Public API surface (published packages) without reference docs.
-- Architectural decisions nobody can reconstruct (why X over Y) for actively-contested areas.
-- Stale docs that are actively wrong (worse than missing) — setup instructions, API examples that no longer compile.
+- **Undocumented public API**: published package surface with no reference docs.
+- **Unrecoverable decisions**: architecture nobody can reconstruct (why X over Y) for actively-contested areas.
+- **Stale docs that are actively wrong (worse than missing)** — setup instructions, API examples that no longer compile.
 
 ## 9. Direction — features & where to take this next
 

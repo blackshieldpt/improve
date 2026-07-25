@@ -22,7 +22,6 @@ a state machine, not to documentation.
 | `skills/improve/references/plan-template.md` | Plan structure, index format, quality bar. Loaded in Phase 4. |
 | `skills/improve/references/adversarial-verification.md` | Refutation-pass prompt template. Loaded in Phase 3. |
 | `skills/improve/references/closing-the-loop.md` | `execute` / `reconcile` / `--issues`. Loaded before the first dispatch. |
-| `examples/001-*.md` | Frozen sample plan, pinned to an old upstream commit. Update only to track template *format* changes — never to change its content. |
 | `.claude-plugin/plugin.json` | Claude Code plugin manifest. |
 | `.claude-plugin/marketplace.json` | Makes the repo its own plugin marketplace. |
 

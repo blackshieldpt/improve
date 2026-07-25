@@ -142,6 +142,20 @@ The upstream project — [github.com/shadcn/improve](https://github.com/shadcn/i
 
 Full detail in the [changelog](./CHANGELOG.md); contributor notes in [AGENTS.md](./AGENTS.md).
 
+## Credits
+
+The original **improve** skill was created by [shadcn](https://github.com/shadcn) — [github.com/shadcn/improve](https://github.com/shadcn/improve). The advisor-not-implementer premise, the handoff-plan format, and the economics behind the whole thing are theirs; this fork builds on that foundation rather than replacing it.
+
+Upstream contributors whose work is in this fork:
+
+- [@shadcn](https://github.com/shadcn) — original author
+- [@dylangrant](https://github.com/dylangrant) — hardened the skill against secret leakage and accidental disclosure, which is the basis of Hard Rule 4 and of the rule that credential findings name a location and type but never a value
+- [@erikpr1994](https://github.com/erikpr1994) — intent & design doc ingestion in recon: ADRs, PRDs, `CONTEXT.md`, `DESIGN.md`, `PRODUCT.md`
+- [@gabbanaesteban](https://github.com/gabbanaesteban) — Claude Code marketplace installation support
+- [@beastawakens](https://github.com/beastawakens) (Ed Fricker) — reworded the security audit guidance toward defensive framing
+
+Fork maintained by [Blackshield](https://blackshield.pt). Run `git log` for the full history — every upstream commit is preserved, not squashed.
+
 ## License
 
 MIT.

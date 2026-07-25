@@ -18,7 +18,9 @@ The founding rule survives unchanged: **the advisor never edits source code.** I
 
 ### Dispatch
 
-Spawn **one** `general-purpose` subagent with `isolation: "worktree"`. Executor model: default `sonnet`; use what the user named if they named one (`execute 003 haiku`).
+Spawn **one** `general-purpose` subagent with `isolation: "worktree"`.
+
+**Executor model**: one tier below the advisor — the skill's economics depend on the expensive model planning and a cheaper one executing. Use what the user named if they named one (`execute 003 haiku`). Otherwise default to the host's mid-tier model (in Claude Code as of this writing, `sonnet`); if that name doesn't resolve, pick the cheapest model that can follow a multi-step plan, not the cheapest available.
 
 The subagent prompt must contain:
 

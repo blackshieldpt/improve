@@ -107,7 +107,23 @@ Direction findings use the standard format with two adaptations: **Impact** is p
 
 ## Finding format
 
-Every finding, from every category and every subagent, comes back in this shape:
+Every finding, from every category and every subagent, comes back in this shape.
+
+**`CATEGORY` is one of these nine prefixes — use them verbatim, don't invent variants.** Parallel subagents that each coin their own prefix make findings impossible to dedup across agents or to match against a previous run's rejection list:
+
+| Prefix | Category (section above) | `Category` field in the plan |
+|---|---|---|
+| `BUG` | 1. Correctness / Bugs | `bug` |
+| `SEC` | 2. Security | `security` |
+| `PERF` | 3. Performance | `perf` |
+| `TEST` | 4. Test Coverage | `tests` |
+| `DEBT` | 5. Tech Debt & Architecture | `tech-debt` |
+| `DEP` | 6. Dependencies & Migrations | `migration` |
+| `DX` | 7. DX & Tooling | `dx` |
+| `DOC` | 8. Docs | `docs` |
+| `DIR` | 9. Direction | `direction` |
+
+`NN` is a two-digit counter, zero-padded, unique within its prefix — `SEC-01`, `SEC-02`. Subagents number independently within their own category, so the advisor renumbers when merging duplicates across agents; the ID in the user-facing table and the index is the advisor's, and it's the one a later run matches rejections against.
 
 ```markdown
 ### [CATEGORY-NN] Short imperative title

@@ -16,6 +16,13 @@ other agent  →  implements, tests, ships    (cheap model, executes)
 npx skills add shadcn/improve
 ```
 
+In Claude Code you can install it as a plugin instead — the repo is its own marketplace:
+
+```
+/plugin marketplace add shadcn/improve
+/plugin install improve@improve
+```
+
 Works in any agent that supports [Agent Skills](https://agentskills.io) format. The plans it writes are plain markdown, so any agent (or human) can pick them up.
 
 ## Usage

@@ -4,6 +4,8 @@ The advisor's job doesn't end at the plan. This file covers the three follow-thr
 
 The founding rule survives unchanged: **the advisor never edits source code.** In `execute`, a *separate executor subagent* edits code in an isolated git worktree; the advisor dispatches, reviews, and renders a verdict — like a tech lead who doesn't push commits to your branch.
 
+**Plans directory:** this file writes `plans/` throughout. If the advisor chose `advisor-plans/` instead, substitute that path everywhere below — index reads, executor instructions, and status writes.
+
 ---
 
 ## `execute <plan>` — dispatch and review
@@ -16,7 +18,9 @@ The founding rule survives unchanged: **the advisor never edits source code.** I
 
 ### Dispatch
 
-Spawn **one** `general-purpose` subagent with `isolation: "worktree"`. Executor model: default `sonnet`; use what the user named if they named one (`execute 003 haiku`).
+Spawn **one** `general-purpose` subagent with `isolation: "worktree"`.
+
+**Executor model**: one tier below the advisor — the skill's economics depend on the expensive model planning and a cheaper one executing. Use what the user named if they named one (`execute 003 haiku`). Otherwise default to the host's mid-tier model (in Claude Code as of this writing, `sonnet`); if that name doesn't resolve, pick the cheapest model that can follow a multi-step plan, not the cheapest available.
 
 The subagent prompt must contain:
 
@@ -51,7 +55,7 @@ Note on fresh worktrees: they share git history but not `node_modules` or build 
 
 Review like a tech lead reviewing a PR against the spec — never fix anything yourself:
 
-1. **Re-run every done criterion** in the worktree. Don't trust the executor's report — verify.
+1. **Re-run every done criterion** in the worktree. Don't trust the executor's report — verify. One exemption: the plan's "`plans/README.md` status row updated" criterion does not apply — you told the executor to skip it and you own the index. Never fail or revise an executor over it.
 2. **Scope compliance**: `git -C <worktree> diff --stat` against the plan's in-scope list. Any file outside scope fails review, full stop.
 3. **Read the full diff.** Judge it against "Why this matters" (does it solve the actual problem?) and the repo conventions named in the plan (does it look like the rest of the codebase?).
 4. **Audit the new tests.** Executors game criteria — a test that asserts nothing meaningful passes `pnpm test` and proves nothing. Read what the tests assert.

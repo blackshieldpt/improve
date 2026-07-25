@@ -9,7 +9,8 @@
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and
 > report — do not improvise. When done, update the status row for this plan
-> in `plans/README.md`.
+> in `plans/README.md` — unless a reviewer dispatched you and told you they
+> maintain the index.
 >
 > **Drift check (run first)**: `git diff --stat 1994caba0..HEAD -- packages/shadcn/src/commands/search.ts packages/shadcn/src/commands/view.ts packages/shadcn/src/registry/config.ts`
 > If any of these changed since this plan was written, compare the
@@ -155,7 +156,8 @@ Replace the block at ~36–55 with `resolveShadowConfig(options.cwd)` (no seed �
 - [ ] `grep -rn "TODO: We're duplicating logic for shadowConfig" packages/shadcn/src/` returns no matches (comment removed with the duplication)
 - [ ] Both `search.ts` and `view.ts` call `resolveShadowConfig`; neither contains an inline shadow-config block
 - [ ] No files outside the in-scope list are modified (`git status`)
-- [ ] `plans/README.md` status row updated
+- [ ] `plans/README.md` status row updated — **not applicable if a reviewer
+      dispatched you and told you they maintain the index**
 
 ## STOP conditions
 

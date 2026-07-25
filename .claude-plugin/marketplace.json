@@ -9,7 +9,7 @@
   },
   "plugins": [
     {
-      "name": "improve",
+      "name": "blackshield",
       "source": "./"
     }
   ]

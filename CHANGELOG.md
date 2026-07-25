@@ -11,6 +11,12 @@ manifests — `.claude-plugin/plugin.json` and the `metadata.version` field in
 
 _Nothing yet._
 
+## 2.1.0 — 2026-07-25
+
+### Changed
+
+- **Plugin renamed to `blackshield`.** Claude Code namespaces plugin skills as `plugin:skill`, so the command was `/improve:improve`; it is now `/blackshield:improve`. Install becomes `/plugin install blackshield@improve`; existing plugin installs need `/plugin uninstall improve` first, since the old name no longer resolves. The skill itself is unchanged, and `npx skills add` installs are unaffected — still `/improve`.
+
 ## 2.0.0 — 2026-07-25
 
 First release of the [Blackshield](https://blackshield.pt) fork. Major rather than

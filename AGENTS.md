@@ -27,8 +27,8 @@ a state machine, not to documentation.
 | `skills/improve/SKILL.md` | Entrypoint. Always loaded. Hard Rules + the four-phase workflow + invocation variants. |
 | `skills/improve/references/audit-playbook.md` | Per-category audit checklist, finding format, prefix table, prioritization rubric. Loaded in Phase 2; sections are also handed to audit subagents by path. |
 | `skills/improve/references/plan-template.md` | Plan structure, index format, quality bar. Loaded in Phase 4. |
-| `skills/improve/references/adversarial-verification.md` | Refutation-pass prompt template. Loaded in Phase 3. |
-| `skills/improve/references/closing-the-loop.md` | `execute` / `reconcile` / `--issues`. Loaded before the first dispatch. |
+| `skills/improve/references/adversarial-verification.md` | Refutation-pass prompt template. Loaded in Phase 3; its premise-verifier section is read again in Phase 4 via `review-plan`. |
+| `skills/improve/references/closing-the-loop.md` | `execute` / `review-merged` / `reconcile` / `--issues`. Loaded before the first dispatch and for the other three flows. |
 | `.claude-plugin/plugin.json` | Claude Code plugin manifest. |
 | `.claude-plugin/marketplace.json` | Makes the repo its own plugin marketplace. |
 

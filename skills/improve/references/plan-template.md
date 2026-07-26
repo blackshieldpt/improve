@@ -263,8 +263,10 @@ Machine-checkable. ALL must hold:
 - [ ] `pnpm typecheck` exits 0
 - [ ] `pnpm test` exits 0; new tests for <X> exist and pass
 - [ ] the regression test for <X> fails at `<planned-at SHA>` and passes now
-- [ ] **every row of the falsifiability bar reported with its observed failure
-      output**; any row that could not be made to fail is called out as such
+- [ ] **every row of the falsifiability bar made to fail, with its observed
+      failure output in the report.** A row that cannot be made to fail FAILS
+      this criterion — call it out as the finding it is; the reviewer blocks
+      and refines the plan, so do not paper over it
 - [ ] `grep -rn "<old pattern>" <the repo's source root>` returns no matches
 - [ ] No files outside the in-scope list are modified (`git status`)
 - [ ] Code-review self-check completed; its outcome is in the report

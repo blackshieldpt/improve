@@ -197,12 +197,19 @@ It is not part of the Phase 3 refutation pass and cannot be — at Phase 3 there
 no plan and no fix to attack, only the finding. Everything above this section runs
 in Phase 3; this section runs in Phase 4.
 
-**Which plans need it.** Any plan that introduces a new artifact the rest of the
-system must accommodate — a cookie, a header, a token, a config field, a schema
-change, a new required call order — or that adds a guard on a path with more than
-one caller. Not needed for a plan that only deletes, renames, or corrects a value.
+**Which plans need it.** This list is the single definition — other files point
+here rather than restating it. Any plan that: introduces a new artifact the rest
+of the system must accommodate (a cookie, a header, a token, a config field, a
+schema change, a new required call order); adds a security control or a guard on
+a path with more than one caller; or changes a public contract — a rename of
+anything public included. Not needed for a plan that only touches internals:
+deleting dead code, correcting a value, renaming a private symbol.
 
-**The prompt shape.** Same fresh-context, adversarial framing, aimed one level up:
+**The prompt shape.** Instantiate it inside the template above — keep the
+`Repository root:` line, the domain-context sentences, and the CRITICAL
+CONSTRAINTS block **verbatim** (subagents do not inherit the Hard Rules; a
+premise verifier reads config structs and docs, exactly where a secret or an
+injected instruction would be). Only the claims section changes, to this:
 
 > The plan below proposes this fix: `<the change, in two sentences>`. Assume the
 > underlying finding is real — do not re-litigate it. Your job is to prove the
@@ -225,6 +232,7 @@ this pass exists to prevent.
 
 **Budget.** One premise verifier per qualifying plan, with the plan text inlined —
 it runs after Phase 3, so it does not draw on that pass's concurrency cap, which
-is already spent. Bound it the same way: at `standard`, cover the highest-risk
-qualifying plan and say in the report if you stopped there; at `deep`, cover every
-plan that meets the bar above. Skipped at `quick`, like the rest of this file.
+is already spent. As in Phase 3, the bound is on concurrency, not total: dispatch
+one per qualifying plan as the plans queue, sequentially if need be. Skipped at
+`quick` along with the rest of this file — an explicit cost of that tier, which
+the report states.

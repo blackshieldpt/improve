@@ -53,7 +53,7 @@ A typical first run, start to finish:
 1. Open your agent in the repo and run `/improve` (or `/improve quick` to keep it cheap).
 2. It maps the repo, audits it, and comes back with a findings table. Reply with the ones you want planned — "plan 1, 3 and 5".
 3. Plans land in `plans/` — one file each, plus an index with the recommended order. Read them; they're meant to be reviewed.
-4. Hand a plan to any agent ("implement plans/001-*.md"), or let the skill run it: `/improve execute 001`. It dispatches a cheaper model in an isolated worktree, reviews the diff against the plan, and reports back with a verdict. Merging stays up to you.
+4. Plans that add a security control, change a public contract, or introduce a new artifact get `/improve review-plan` first — a fresh-context critique plus a **premise verifier**: a subagent that attacks the fix itself, walking every configuration the project supports rather than just the default the plan was written against. Then hand a plan to any agent ("implement plans/001-*.md"), or let the skill run it: `/improve execute 001`. It dispatches a cheaper model in an isolated worktree, reviews the diff against the plan, and reports back with a verdict. Merging stays up to you.
 5. Ran several plans? Merge their branches into an integration branch — the skill never merges — and `/improve review-merged` reviews them as one change before any of it reaches your working branch. Each `execute` review sees one plan against a clean base, so it cannot see what only appears in the combination — a guard one plan adds running ahead of what another plan's test asserts, leaving that test green but no longer testing anything.
 6. Next session, run `/improve reconcile` to clean up the backlog: verify what landed, refresh what drifted, unblock what got stuck.
 
@@ -64,11 +64,12 @@ Before a PR, `/improve branch` does the same thing scoped to just what your bran
 A run against [shadcn/ui](https://github.com/shadcn-ui/ui) came back with findings like:
 
 ```
-| # | Finding                                        | Category  | Impact | Effort | Risk |
-|---|------------------------------------------------|-----------|--------|--------|------|
-| 1 | shadow-config duplicated in search.ts/view.ts, | tech-debt | MED    | M      | MED  |
-|   | copies already drifted (TODO at search.ts:31)  |           |        |        |      |
-| 2 | O(n²) icon migration (migrate-icons.ts:168)    | perf      | MED    | S      | LOW  |
+| # | Finding                          | Category  | Impact                          | Effort | Risk | Evidence             |
+|---|----------------------------------|-----------|---------------------------------|--------|------|----------------------|
+| 1 | shadow-config duplicated in      | tech-debt | MED — the copies have already   | M      | MED  | search.ts:31 (TODO   |
+|   | search.ts and view.ts            |           | drifted apart                   |        |      | admits it)           |
+| 2 | O(n²) icon migration             | perf      | MED — whole-registry rescan     | S      | LOW  | migrate-icons.ts:168 |
+|   |                                  |           | per icon                        |        |      |                      |
 ```
 
 …and rejected a few, with reasons recorded so they don't come back next run:
@@ -105,7 +106,7 @@ Picking #1 produced a plan with the current code excerpted, exact steps, the rep
 
 ## What makes the plans executable
 
-Plans are written for the weakest plausible executor — a model that has never seen the advisor session and may be much smaller. Three properties carry that:
+Plans are written for the weakest plausible executor — a model that has never seen the advisor session and may be much smaller. These properties carry that:
 
 - **Self-contained.** All context is inlined: exact file paths, current-state code excerpts, repo conventions with an exemplar file, verified commands. No "as discussed above."
 - **Verification gates.** Every step ends with a command and its expected output. Done criteria are machine-checkable. The executor never has to judge whether it succeeded.
@@ -113,6 +114,7 @@ Plans are written for the weakest plausible executor — a model that has never 
 - **A test plan with a coverage bar.** Every plan names the cases, the layer each belongs at (unit, integration, e2e), and the existing test to model. For a bug fix the test has to be seen *failing* at the plan's commit and passing after — a test written after the fix and never observed to fail proves nothing about the bug. The bar is behavioural, not a percentage.
 - **A falsifiability bar.** A table of *delete this → that test must fail*, one row per behaviour the plan claims to establish. The executor performs each deletion, runs the test, and reports the **observed failure output** — not a checkmark. A green suite proves nothing on its own, because a test that cannot fail passes for exactly the same reason a correct one does. A row nobody can make fail is treated as a finding, not a formality.
 - **A code review, both directions.** The executor self-reviews before reporting — diff re-read against the intent rather than against the checklist, every hunk traced to a step, tests checked for asserting behaviour instead of the code just written. And the plan names what *this* change's reviewer should distrust: the riskiest hunk, the assumption most likely wrong, what a fully green suite still wouldn't catch.
+- **A maintenance note.** What future changes will interact with this one, and what these tests won't catch later.
 
 Each plan also stamps the git commit it was written against, so executors run a mechanical drift check before touching anything.
 

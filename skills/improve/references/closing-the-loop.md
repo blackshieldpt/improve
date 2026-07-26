@@ -58,7 +58,8 @@ TESTS: which cases from the plan's test plan you covered, at which layer, and
        (for a bug fix) confirmation the test failed before the change
 FALSIFIABILITY BAR: every row of the plan's table — the deletion you made, the
        test you ran, and the ACTUAL failure output. Mark any row you could not
-       make fail; that is a finding, not a formality.
+       make fail; that is a finding, not a formality. (Omit this section only if
+       the plan has no falsifiability bar.)
 NOTES: anything the reviewer should know (deviations, surprises, judgment calls)
 ```
 
@@ -72,9 +73,11 @@ Review like a tech lead reviewing a PR against the spec — never fix anything y
 2. **Scope compliance**: `git -C <worktree> diff --stat` against the plan's in-scope list. Any file outside scope fails review, full stop.
 3. **Read the full diff.** Judge it against "Why this matters" (does it solve the actual problem?) and the repo conventions named in the plan (does it look like the rest of the codebase?).
 4. **Audit the new tests** against the plan's test plan, not just its done criteria. Executors game criteria: a test that asserts nothing meaningful still turns the suite green and proves nothing. Read what each test actually asserts, check the cases named in the plan are the cases covered and at the layer specified, and for a bug fix confirm the claim that the test failed before the change — re-run it at the plan's `Planned at` commit if the report doesn't evidence it.
-5. **Re-run the falsifiability bar yourself, at least for the rows that carry the plan's security or correctness claim.** This is the highest-value thing in the review and the cheapest to skip. Make the deletion in the worktree, run the named test, confirm it fails *for the stated reason*, restore. Two things to watch:
-   - **An incidental failure is not a passing row.** If neutering the guard makes the test fail with a nil-dereference or a build error rather than the assertion the test exists for, the test may still be asserting nothing — the crash is doing the work. Prefer reverting to the pre-fix behaviour, which produces a clean assertion failure, and say which you did.
-   - **Verify the row is testing what its name says.** A test can fail on deletion because an *earlier* guard rejects the request, not the one under test. If the plan added a guard ahead of an existing one on the same path, check the later control is still reachable.
+5. **Audit the falsifiability bar the executor reported**, starting with the rows carrying the plan's security or correctness claim. This is the highest-value thing in the review and the cheapest to skip. You are judging the reported output, not redoing the deletions — never edit source, in the worktree or anywhere else. For each row: is there actual output rather than a checkmark, does it name the test the row names, and does it fail *for the stated reason*? Two things to watch:
+   - **An incidental failure is not a passing row.** A nil-dereference or a build error where the row's assertion should be means the test may still be asserting nothing — the crash is doing the work. The plan tells the executor to prefer reverting to the pre-fix behaviour, which produces a clean assertion failure; if the report shows a crash instead, send the row back rather than accepting it.
+   - **Verify the row is testing what its name says.** A test can fail on deletion because an *earlier* guard rejects the request, not the one under test. If the plan added a guard ahead of an existing one on the same path, read the handler and confirm the later control is still reachable.
+
+   Any row that is missing, unquoted, or fails for the wrong reason is REVISE feedback — name the row and what the output has to show. A row the executor reports it could not make fail is a finding about the plan, not an executor failure: the test asserts nothing, so refine the plan rather than sending it back. **If the plan predates the falsifiability bar and has no table**, skip this step, judge the tests on step 4 alone, and never fail an executor for a section its plan never contained; if the plan is security- or correctness-critical, reconcile it to add the table before the next dispatch.
 
 ### Verdict
 
@@ -97,14 +100,35 @@ for judging whether a plan was implemented, and the wrong unit for judging wheth
 the *result* is correct — because the defects that survive to this point are
 precisely the ones no single-plan review can see.
 
-Run it after the last `execute` and before integrating. If branches are already
-merged, run it against the pre-merge commit; late is far better than never.
+Run it after the last `execute` and before the work reaches the user's branch.
 
-### Scope
+### The commit to review
 
-`<base>` defaults to the commit the plans were planned at. Review
-`git diff <base>..<tip>` as **one change**, the way a maintainer would review a
-release branch — not as N plans re-read in sequence.
+The pass needs one commit that contains every executed plan — call it `<tip>`.
+Each `execute` leaves its own worktree branch, so no such commit exists yet, and
+**you do not create it**: Hard Rule 1 forbids merging, and an integration branch
+is the user's call. Ask for one and hand over the commands:
+
+```
+git checkout -b <integration branch> <base>
+git merge <plan branch>          # one per executed plan, in the index's order
+```
+
+`<base>` is the commit the plans were planned at — the `Planned at` line, which is
+normally identical across them. If they were planned at different commits, use the
+earliest and say so in the report; the diff will then also contain unrelated work.
+
+Then review `git diff <base>..<tip>` as **one change**, the way a maintainer would
+review a release branch — not as N plans re-read in sequence.
+
+Two variations: if the user already merged into a branch of their own, `<tip>` is
+that branch and `<base>` the pre-merge commit — late is far better than never. If
+they'd rather not build an integration branch at all, say the pass can't run
+without one rather than falling back to reading the branches one at a time; that
+is what `execute` already did, and it is the exact blindness this pass exists for.
+
+**Ask which merges hit conflicts** while they were building `<tip>`, and record
+the answer — the resolutions are the one part of the diff no review has ever seen.
 
 ### What only shows up here
 
@@ -124,8 +148,10 @@ Lead with these; they are the whole reason the pass exists.
   touching the same error path can make it distinguishable — an extra header, a
   different status, a changed body — turning a deliberately opaque rejection into
   an oracle.
-- **Conflict resolutions.** Every merge conflict you resolved is unreviewed code.
-  Diff the resolved region against both sides and confirm nothing was dropped.
+- **Conflict resolutions.** Every conflict resolved while building `<tip>` is
+  unreviewed code — it belongs to no plan, so no `execute` review ever saw it.
+  For each one the user named, diff the resolved region against both sides and
+  confirm nothing was dropped.
 - **A fix in one plan that silences a finding in another.** Most often a linter
   suppression added by a tooling plan that now permanently hides a defect a
   different plan (or the original audit) had recorded.

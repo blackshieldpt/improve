@@ -189,8 +189,13 @@ cannot, and why the two are complementary rather than redundant.
 
 Left there, this is a diagnosis without a remedy, and the gap is real: a finding
 can survive three refuters and still produce a fix that is correct in the default
-configuration and broken in every other one. So for plans in the categories named
-below, spend **one verifier slot on the premise instead of the finding**.
+configuration and broken in every other one. The remedy is the same machinery
+aimed one level up: a **premise verifier**, dispatched in **Phase 4 once the plan
+exists**, as part of `review-plan` and before the plan reaches an executor.
+
+It is not part of the Phase 3 refutation pass and cannot be — at Phase 3 there is
+no plan and no fix to attack, only the finding. Everything above this section runs
+in Phase 3; this section runs in Phase 4.
 
 **Which plans need it.** Any plan that introduces a new artifact the rest of the
 system must accommodate — a cookie, a header, a token, a config field, a schema
@@ -218,6 +223,8 @@ that comes back with "works in the default configuration, breaks under `<setting
 has just saved a release, and that is the single most common shape of the defect
 this pass exists to prevent.
 
-**Budget.** Premise verifiers come out of the same concurrency cap as finding
-verifiers; they do not get their own. At `standard`, one premise verifier on the
-highest-risk plan is usually the right trade against a fourth finding verifier.
+**Budget.** One premise verifier per qualifying plan, with the plan text inlined —
+it runs after Phase 3, so it does not draw on that pass's concurrency cap, which
+is already spent. Bound it the same way: at `standard`, cover the highest-risk
+qualifying plan and say in the report if you stopped there; at `deep`, cover every
+plan that meets the bar above. Skipped at `quick`, like the rest of this file.

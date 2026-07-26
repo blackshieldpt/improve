@@ -190,7 +190,7 @@ command that proves it".
 passes for exactly the same reason a correct one does. Every plan states, as a
 table, what must break when the work is removed:
 
-| Delete / revert this | This test must fail | Observed failure (executor fills in) |
+| Delete / revert this | This test must fail | Observed failure (goes in the executor's report) |
 |---|---|---|
 | `the specific guard, line-referenced` | `TestName` | |
 | `the specific call the fix adds` | `TestName` | |
@@ -201,7 +201,9 @@ Rules that make it real rather than ceremonial:
   guard, a validation, and a call, that is three rows.
 - **The executor must perform each deletion, run the test, capture the actual
   failure output, and restore.** Not "confirmed" — the output. This is a done
-  criterion and belongs in the executor's report.
+  criterion, and the output goes in the executor's **report**: the third column
+  stays empty in the plan file, which the executor works from as text or as a
+  read-only path and cannot write to.
 - **The deletion must leave the code compiling.** A row that fails to build tests
   the compiler, not the test. Prefer neutering the behaviour (make the guard's
   branch unreachable, drop the option from the call) over deleting a symbol other
@@ -315,7 +317,11 @@ looked at". Append a new block per run rather than overwriting the last one.
 - **Not audited**: <categories skipped, packages excluded, and why — e.g. "docs,
   DX, direction skipped at `quick`; `packages/legacy/*` excluded as frozen">
 - **Verification**: <which findings went through the adversarial refutation pass;
-  say so if it was capped, and name the ones that are self-vetted only>
+  say so if it was capped, and name the ones that are self-vetted only; which
+  plans got a premise verifier>
+- **Merged review**: <`review-merged` run over plans <NNN>–<NNN> at `<short SHA>`,
+  or "not run — plans reviewed one at a time only">, so a later `reconcile` can
+  tell the two apart
 
 ## Execution order & status
 

@@ -39,7 +39,7 @@ Works in any agent that supports [Agent Skills](https://agentskills.io) format. 
 /improve plan <description>     skip the audit, spec one thing
 /improve review-plan <file>     critique and tighten an existing plan
 /improve execute <plan>         dispatch a cheaper executor, review its work
-/improve review-merged          review the executed plans together, before merge
+/improve review-merged [<base>] review the executed plans together, before merge
 /improve reconcile              refresh the backlog: verify, unblock, retire
 /improve ... --issues           also publish plans as GitHub issues
 ```
@@ -54,7 +54,7 @@ A typical first run, start to finish:
 2. It maps the repo, audits it, and comes back with a findings table. Reply with the ones you want planned — "plan 1, 3 and 5".
 3. Plans land in `plans/` — one file each, plus an index with the recommended order. Read them; they're meant to be reviewed.
 4. Hand a plan to any agent ("implement plans/001-*.md"), or let the skill run it: `/improve execute 001`. It dispatches a cheaper model in an isolated worktree, reviews the diff against the plan, and reports back with a verdict. Merging stays up to you.
-5. Ran several plans? `/improve review-merged` reviews them as one change before you integrate. Each `execute` review sees one plan against a clean base, so it cannot see what only appears in the combination — a guard one plan adds running ahead of what another plan's test asserts, leaving that test green but no longer testing anything.
+5. Ran several plans? Merge their branches into an integration branch — the skill never merges — and `/improve review-merged` reviews them as one change before any of it reaches your working branch. Each `execute` review sees one plan against a clean base, so it cannot see what only appears in the combination — a guard one plan adds running ahead of what another plan's test asserts, leaving that test green but no longer testing anything.
 6. Next session, run `/improve reconcile` to clean up the backlog: verify what landed, refresh what drifted, unblock what got stuck.
 
 Before a PR, `/improve branch` does the same thing scoped to just what your branch changes.
@@ -121,7 +121,7 @@ Each plan also stamps the git commit it was written against, so executors run a 
 Plans aren't fire-and-forget:
 
 - **`execute <plan>`** spawns a cheaper executor subagent in an isolated git worktree, hands it the plan, then reviews the result like a tech lead — re-runs every done criterion, checks scope compliance, reads the diff against intent. Verdict: approve (merging stays your call), send back for revision (max 2 rounds), or block and refine the plan.
-- **`review-merged`** reviews the executed plans as a single change before you integrate them. Individual reviews each judge one plan against a clean base and are structurally blind to interactions: a guard one plan adds can run ahead of what another plan's test asserts, leaving the test green while it silently stops exercising the control it's named for. It also re-checks conflict resolutions and whether a new artifact — a cookie, a header, a required call order — survives every configuration the project supports, not just the default it was written against.
+- **`review-merged`** reviews the executed plans as a single change, on an integration branch you create, before any of it reaches your working branch. Individual reviews each judge one plan against a clean base and are structurally blind to interactions: a guard one plan adds can run ahead of what another plan's test asserts, leaving the test green while it silently stops exercising the control it's named for. It also re-checks conflict resolutions and whether a new artifact — a cookie, a header, a required call order — survives every configuration the project supports, not just the default it was written against.
 - **`reconcile`** processes what happened since: verifies DONE plans still hold, investigates BLOCKED ones and rewrites around the obstacle, refreshes drifted plans, retires findings that got fixed independently.
 - **`--issues`** publishes plans as GitHub issues — same self-contained body, so any agent or human can pick them up where work already lives.
 

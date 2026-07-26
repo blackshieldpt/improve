@@ -9,7 +9,9 @@ manifests — `.claude-plugin/plugin.json` and the `metadata.version` field in
 
 ## Unreleased
 
-_Nothing yet._
+### Added
+
+- README: a mermaid diagram of the three main flows — `/improve` (full audit), `plan`, and `execute` — at the top of "How it works".
 
 ## 2.2.0 — 2026-07-26
 

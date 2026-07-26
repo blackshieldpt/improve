@@ -83,6 +83,46 @@ Picking #1 produced a plan with the current code excerpted, exact steps, the rep
 
 ## How it works
 
+```mermaid
+flowchart LR
+    subgraph full ["/improve — full audit"]
+        direction TB
+        F1["Phase 1 — Recon<br/>stack, conventions, intent docs, prior backlog"]
+        F2["Phase 2 — Audit<br/>parallel subagents, nine categories"]
+        F3["Phase 3 — Vet<br/>re-read evidence, adversarial refuters on HIGH/MED"]
+        F4["Findings table<br/>you pick what becomes plans"]
+        F5["Phase 4 — Plans<br/>one file per finding + index, in plans/"]
+        F6["review-plan on risky plans<br/>fresh-context read + premise verifier"]
+        F1 --> F2 --> F3 --> F4 --> F5 --> F6
+    end
+
+    subgraph plan ["/improve plan — spec one thing"]
+        direction TB
+        P1["Recon<br/>skip the audit"]
+        P2["Investigate enough to specify<br/>ambiguities: resolve from code first, then ask"]
+        P3["Single plan, in plans/"]
+        P1 --> P2 --> P3
+    end
+
+    subgraph exec ["/improve execute — run one plan"]
+        direction TB
+        E1["Preconditions<br/>drift check, dependencies DONE, base commit"]
+        E2["Dispatch cheaper executor subagent<br/>isolated git worktree"]
+        E3["Executor implements, self-reviews,<br/>reports falsifiability output"]
+        E4["Advisor reviews like a tech lead<br/>criteria re-run, scope, diff, tests"]
+        E5{"Verdict"}
+        E6["APPROVE<br/>merging stays yours"]
+        E7["REVISE<br/>max 2 rounds"]
+        E8["BLOCK<br/>refine the plan"]
+        E1 --> E2 --> E3 --> E4 --> E5
+        E5 --> E6
+        E5 --> E7 --> E3
+        E5 --> E8
+    end
+
+    full ~~~ plan ~~~ exec
+```
+
 **Recon.** Maps the repo: stack, conventions, and the exact build/test/lint commands — these become verification gates in every plan. It also picks up three things that make the audit sharper:
 
 - **Intent and design docs**, when present — ADRs (`docs/adr/`), PRDs, `CONTEXT.md`, `DESIGN.md`, `PRODUCT.md` — so decided tradeoffs aren't re-flagged as findings, direction suggestions stay grounded in stated product intent, and plans speak the repo's own vocabulary. Composes with any repo that already maintains these docs.

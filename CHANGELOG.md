@@ -9,6 +9,10 @@ manifests — `.claude-plugin/plugin.json` and the `metadata.version` field in
 
 ## Unreleased
 
+_Nothing yet._
+
+## 2.2.0 — 2026-07-26
+
 Everything below came out of one end-to-end run of the skill against a ~15k-line
 Go auth library — six plans audited, planned, executed, reviewed and merged. A
 review of the *merged* result then found 22 defects that the six individual plan
@@ -28,6 +32,11 @@ that let them through.
 - **`execute` preconditions now include verifying the worktree's base commit.** A drift check compares `Planned at` against `HEAD` and is meaningless if the worktree was branched from somewhere else entirely — a failure that presents *exactly* like genuine drift, so the executor correctly stops and a full dispatch is wasted. Host worktree tooling may branch from the repo's default branch, and `origin/HEAD` is often stale; in the source run it pointed 63 commits back. Check and remedy are one command each. Stacked plans get the related note that their base is the dependency's commit, not their own `Planned at`.
 - **Plan delivery to executors offers a second option.** Inlining the full plan is still always correct, but passing the absolute path in the main checkout is now documented for same-filesystem dispatches — read verified beforehand, path marked read-only. At ~30 KB per plan across a queue the difference is material.
 - **The "deliberately not covered" section carries a warning.** It exists to separate an oversight from a decision, which quietly implies that any decision written into it is sound. In the source run the single riskiest interaction in a security change was recorded there and shipped untested. A decision still has to be a good one.
+- **Every dispatched subagent prompt now carries Hard Rules 4 and 6 explicitly** — the executor preamble, the `review-merged` reviewers (plus a read-only constraint: they read the user's integration branch, not a disposable worktree), and the premise verifier, which instantiates inside the Phase 3 refuter template rather than shipping a bare prompt with no constraints block and no repository root. Subagents don't inherit the rules; the README's "copied verbatim into every subagent" claim is now true rather than aspirational.
+
+### Fixed
+
+- **README drift against released content**: the example findings table had lost the `Evidence` column and showed bare grades where the skill mandates grade-plus-sentence; the plan-properties list had lost the maintenance note and still said "three properties" above six bullets. Nothing at runtime reads the README, which is exactly how it drifts.
 
 ## 2.1.0 — 2026-07-25
 

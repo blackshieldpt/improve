@@ -7,7 +7,7 @@ metadata:
   upstream: shadcn/improve
   # keep in sync with "version" in .claude-plugin/plugin.json — the two
   # distribution channels read different manifests; bump both together
-  version: "2.1.0"
+  version: "2.2.0"
 ---
 
 # Improve
